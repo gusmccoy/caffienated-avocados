@@ -1,0 +1,17 @@
+# Xcode
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+DerivedData/
+.build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Secrets — NEVER commit these
+Secrets.plist
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
