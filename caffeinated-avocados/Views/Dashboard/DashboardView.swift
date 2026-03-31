@@ -8,6 +8,7 @@ struct DashboardView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var sessions: [WorkoutSession]
     @State private var listVM = WorkoutListViewModel()
     @State private var showingAddWorkout = false
+    @State private var showingSettings = false
 
     // Grab just the 5 most recent workouts for the "Recent" section
     private var recentSessions: [WorkoutSession] {
@@ -38,9 +39,19 @@ struct DashboardView: View {
                             .font(.title2)
                     }
                 }
+                ToolbarItem(placement: .navigation) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                    }
+                }
             }
             .sheet(isPresented: $showingAddWorkout) {
                 AddWorkoutView()
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
         }
     }
