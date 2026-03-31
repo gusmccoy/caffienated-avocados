@@ -26,9 +26,9 @@ struct ContentView: View {
                     Label("Cross Train", systemImage: "figure.cross.training")
                 }
 
-            SettingsView()
+            PlanView()
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    Label("Plan", systemImage: "calendar.badge.plus")
                 }
         }
         .tint(.orange) // Brand accent color

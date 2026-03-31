@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AD2C2A4D2F7B0855002E1CAD /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = AD2C2A4C2F7B0855002E1CAD /* Secrets.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AD2C28352F79C8CF002E1CAD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		AD2C28232F79C8CE002E1CAD /* caffeinated-avocados.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "caffeinated-avocados.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD2C28342F79C8CF002E1CAD /* caffeinated-avocadosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "caffeinated-avocadosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD2C283E2F79C8CF002E1CAD /* caffeinated-avocadosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "caffeinated-avocadosUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD2C2A4C2F7B0855002E1CAD /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Secrets.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -34,6 +39,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Secrets.plist,
 			);
 			target = AD2C28222F79C8CE002E1CAD /* caffeinated-avocados */;
 		};
@@ -88,6 +94,7 @@
 		AD2C281A2F79C8CE002E1CAD = {
 			isa = PBXGroup;
 			children = (
+				AD2C2A4C2F7B0855002E1CAD /* Secrets.plist */,
 				AD2C28252F79C8CE002E1CAD /* caffeinated-avocados */,
 				AD2C28372F79C8CF002E1CAD /* caffeinated-avocadosTests */,
 				AD2C28412F79C8CF002E1CAD /* caffeinated-avocadosUITests */,
@@ -225,6 +232,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD2C2A4D2F7B0855002E1CAD /* Secrets.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,12 +302,24 @@
 				DEVELOPMENT_TEAM = 45KJB2D3A5;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "caffeinated-avocados/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Caffeinated Avocados";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Caffeinated Avocados uses Calendar to create events for your planned workouts.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "Caffeinated Avocados uses Calendar to create events for your planned workouts.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -343,12 +363,24 @@
 				DEVELOPMENT_TEAM = 45KJB2D3A5;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "caffeinated-avocados/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Caffeinated Avocados";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Caffeinated Avocados uses Calendar to create events for your planned workouts.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "Caffeinated Avocados uses Calendar to create events for your planned workouts.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

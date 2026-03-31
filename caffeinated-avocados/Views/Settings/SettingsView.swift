@@ -4,6 +4,9 @@
 import SwiftUI
 import SwiftData
 import AuthenticationServices
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SettingsView: View {
     @State private var stravaVM = StravaViewModel()
@@ -106,11 +109,17 @@ private struct StravaConnectionRow: View {
             }
         } else {
             Button {
-                // AuthenticationServices requires a UIWindowScene anchor;
-                // in a real app, pass the scene's window here.
-                // For now we call connect without anchor (update in AppDelegate/SceneDelegate).
                 Task {
-                    // Placeholder: real implementation passes ASPresentationAnchor
+                    #if canImport(UIKit)
+                    guard let window = UIApplication.shared.connectedScenes
+                        .compactMap({ $0 as? UIWindowScene })
+                        .first?.windows.first(where: { $0.isKeyWindow })
+                    else { return }
+                    await vm.connect(presentationAnchor: window)
+                    #else
+                    // For macOS or other platforms, you'll need to get the window differently
+                    // or modify your StravaViewModel to handle this appropriately
+                    #endif
                 }
             } label: {
                 HStack {
