@@ -125,7 +125,10 @@ private struct StravaConnectionRow: View {
                     else { return }
                     await vm.connect(presentationAnchor: window)
                     #elseif canImport(AppKit)
-                    guard let window = NSApplication.shared.keyWindow else { return }
+                    guard let window = NSApplication.shared.keyWindow
+                        ?? NSApplication.shared.mainWindow
+                        ?? NSApplication.shared.windows.first(where: { $0.isVisible })
+                    else { return }
                     await vm.connect(presentationAnchor: window)
                     #endif
                 }
