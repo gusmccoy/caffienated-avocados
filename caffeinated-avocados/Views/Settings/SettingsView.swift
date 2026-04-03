@@ -6,12 +6,15 @@ import SwiftData
 import AuthenticationServices
 #if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
 #endif
 
 struct SettingsView: View {
     @State private var stravaVM = StravaViewModel()
     @Query private var connections: [StravaConnection]
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -75,6 +78,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
             .alert("Error", isPresented: .constant(stravaVM.errorMessage != nil)) {
                 Button("OK") { stravaVM.errorMessage = nil }
             } message: {
@@ -116,9 +124,9 @@ private struct StravaConnectionRow: View {
                         .first?.windows.first(where: { $0.isKeyWindow })
                     else { return }
                     await vm.connect(presentationAnchor: window)
-                    #else
-                    // For macOS or other platforms, you'll need to get the window differently
-                    // or modify your StravaViewModel to handle this appropriately
+                    #elseif canImport(AppKit)
+                    guard let window = NSApplication.shared.keyWindow else { return }
+                    await vm.connect(presentationAnchor: window)
                     #endif
                 }
             } label: {

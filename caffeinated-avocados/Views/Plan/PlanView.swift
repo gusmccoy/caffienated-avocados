@@ -152,6 +152,26 @@ private struct DaySection: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button {
+                                vm.openEditSheet(for: workout)
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.orange)
+                        }
+                        .contextMenu {
+                            Button {
+                                vm.openEditSheet(for: workout)
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                deleteWorkout(workout)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                 }
             }
         }

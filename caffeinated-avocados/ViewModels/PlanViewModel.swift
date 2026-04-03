@@ -69,6 +69,7 @@ final class PlanViewModel {
     // MARK: - Add-Sheet Form State
 
     var isShowingAddSheet: Bool = false
+    var editingWorkout: PlannedWorkout? = nil
     var sheetTargetDate: Date = .now
     var formType: WorkoutType = .running
     var formTitle: String = ""
@@ -77,11 +78,14 @@ final class PlanViewModel {
     var formIntensity: IntensityLevel = .moderate
     var calendarAuthorizationDenied: Bool = false
 
+    var isEditing: Bool { editingWorkout != nil }
+
     var formShowsDistance: Bool {
         formType == .running || formType == .crossTraining
     }
 
     func openAddSheet(for day: Date) {
+        editingWorkout = nil
         sheetTargetDate = day.startOfDay
         formType = .running
         formTitle = ""
@@ -92,8 +96,21 @@ final class PlanViewModel {
         isShowingAddSheet = true
     }
 
+    func openEditSheet(for workout: PlannedWorkout) {
+        editingWorkout = workout
+        sheetTargetDate = workout.date
+        formType = workout.workoutType
+        formTitle = workout.title
+        formDistanceMiles = workout.plannedDistanceMiles
+        formNotes = workout.notes
+        formIntensity = workout.intensityLevel
+        calendarAuthorizationDenied = false
+        isShowingAddSheet = true
+    }
+
     func resetForm() {
         isShowingAddSheet = false
+        editingWorkout = nil
         formTitle = ""
         formDistanceMiles = 0
         formNotes = ""
