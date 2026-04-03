@@ -62,7 +62,7 @@ struct AddPlannedWorkoutView: View {
                     }
                 }
             }
-            .navigationTitle(dateTitle)
+            .navigationTitle(vm.isEditing ? "Edit Workout" : dateTitle)
             #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -71,7 +71,7 @@ struct AddPlannedWorkoutView: View {
                     Button("Cancel") { vm.resetForm() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+                    Button(vm.isEditing ? "Update" : "Save") { save() }
                 }
             }
         }
@@ -82,6 +82,15 @@ struct AddPlannedWorkoutView: View {
     }
 
     private func save() {
+        if let existing = vm.editingWorkout {
+            update(existing)
+        } else {
+            create()
+        }
+        vm.resetForm()
+    }
+
+    private func create() {
         let workout = PlannedWorkout(
             date: vm.sheetTargetDate,
             workoutType: vm.formType,
@@ -102,7 +111,27 @@ struct AddPlannedWorkoutView: View {
                 vm.calendarAuthorizationDenied = true
             }
         }
+    }
 
-        vm.resetForm()
+    private func update(_ workout: PlannedWorkout) {
+        let oldEventId = workout.calendarEventIdentifier
+        workout.workoutType = vm.formType
+        workout.title = vm.formTitle.isEmpty ? vm.formType.rawValue : vm.formTitle
+        workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formDistanceMiles : 0
+        workout.notes = vm.formNotes
+        workout.intensityLevel = vm.formIntensity
+
+        Task { @MainActor in
+            // Delete the old calendar event and create a fresh one with updated details
+            if let id = oldEventId {
+                try? await calendarService.deleteEvent(identifier: id)
+            }
+            let granted = await calendarService.requestAccessIfNeeded()
+            if granted {
+                if let eventId = try? await calendarService.createEvent(for: workout) {
+                    workout.calendarEventIdentifier = eventId
+                }
+            }
+        }
     }
 }
