@@ -14,13 +14,13 @@ final class PlannedWorkout {
     /// Always stored in miles (0 for strength workouts or when not set).
     var plannedDistanceMiles: Double
     /// Optional planned duration in seconds (0 = not set).
-    var plannedDurationSeconds: Int
+    var plannedDurationSeconds: Int = 0
     var notes: String
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
     /// True when an imported activity matched this planned workout within the configured threshold.
-    var isCompleted: Bool
+    var isCompleted: Bool = false
     /// The stravaActivityId of the session that completed this planned workout, if applicable.
     var completedByStravaActivityId: String?
     var createdAt: Date

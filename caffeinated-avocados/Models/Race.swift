@@ -49,7 +49,7 @@ final class Race {
     var location: String
     var goalTimeSeconds: Int?           // nil = no goal time set
     var notes: String
-    var isCompleted: Bool
+    var isCompleted: Bool = false
     var createdAt: Date
 
     init(
