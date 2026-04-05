@@ -6,6 +6,11 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
+            PlanView()
+                .tabItem {
+                    Label("Plan", systemImage: "calendar.badge.plus")
+                }
+
             DashboardView()
                 .tabItem {
                     Label("Dashboard", systemImage: "chart.bar.fill")
@@ -24,11 +29,6 @@ struct ContentView: View {
             CrossTrainingListView()
                 .tabItem {
                     Label("Cross Train", systemImage: "figure.cross.training")
-                }
-
-            PlanView()
-                .tabItem {
-                    Label("Plan", systemImage: "calendar.badge.plus")
                 }
         }
         .tint(.orange) // Brand accent color

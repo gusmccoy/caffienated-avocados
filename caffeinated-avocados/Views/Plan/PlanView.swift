@@ -11,32 +11,287 @@ struct PlanView: View {
     @Query(sort: \PlannedWorkout.date, order: .forward)
     private var allPlanned: [PlannedWorkout]
 
+    @Query(sort: \Race.date, order: .forward)
+    private var allRaces: [Race]
+
+    @State private var showingAddRace = false
+    @State private var editingRace: Race? = nil
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    // Next upcoming race banner (if any)
+                    if let next = nextUpcomingRace {
+                        NextRaceBanner(race: next)
+                    }
+
                     WeekNavigationHeader(vm: vm)
                     WeekMileageCard(miles: vm.totalPlannedMiles(from: weekWorkouts))
+
                     ForEach(vm.weekDays, id: \.self) { day in
                         DaySection(
                             day: day,
                             workouts: vm.workouts(for: day, from: allPlanned),
+                            races: racesOnDay(day),
                             vm: vm,
                             calendarService: calendarService
                         )
                     }
+
+                    // All races section
+                    RacesSectionView(
+                        races: allRaces,
+                        onAdd: { showingAddRace = true },
+                        onEdit: { editingRace = $0 },
+                        onDelete: deleteRace
+                    )
                 }
                 .padding()
             }
             .navigationTitle("Training Plan")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showingAddRace = true } label: {
+                        Label("Add Race", systemImage: "flag.checkered")
+                    }
+                }
+            }
             .sheet(isPresented: $vm.isShowingAddSheet) {
                 AddPlannedWorkoutView(vm: vm, calendarService: calendarService)
+            }
+            .sheet(isPresented: $showingAddRace) {
+                AddRaceView()
+            }
+            .sheet(item: $editingRace) { race in
+                AddRaceView(editingRace: race)
             }
         }
     }
 
     private var weekWorkouts: [PlannedWorkout] {
         vm.workoutsInCurrentWeek(from: allPlanned)
+    }
+
+    private var nextUpcomingRace: Race? {
+        allRaces.first { !$0.isPast }
+    }
+
+    private func racesOnDay(_ day: Date) -> [Race] {
+        let target = day.startOfDay
+        return allRaces.filter { Calendar.current.startOfDay(for: $0.date) == target }
+    }
+
+    @Environment(\.modelContext) private var modelContext
+
+    private func deleteRace(_ race: Race) {
+        modelContext.delete(race)
+    }
+}
+
+// MARK: - Next Race Banner
+
+private struct NextRaceBanner: View {
+    let race: Race
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "flag.checkered")
+                .font(.title2)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(race.name)
+                    .font(.subheadline.weight(.semibold))
+                HStack(spacing: 8) {
+                    Text(race.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("·")
+                        .foregroundStyle(.secondary)
+                    Text(race.raceDistance.rawValue)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(race.countdownLabel)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.orange)
+                if let goal = race.goalTimeSeconds {
+                    Text(formattedGoal(goal))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .cardStyle()
+    }
+
+    private func formattedGoal(_ secs: Int) -> String {
+        let h = secs / 3600
+        let m = (secs % 3600) / 60
+        let s = secs % 60
+        if h > 0 { return String(format: "Goal %d:%02d:%02d", h, m, s) }
+        return String(format: "Goal %d:%02d", m, s)
+    }
+}
+
+// MARK: - Races Section
+
+private struct RacesSectionView: View {
+    let races: [Race]
+    let onAdd: () -> Void
+    let onEdit: (Race) -> Void
+    let onDelete: (Race) -> Void
+
+    @State private var isExpanded = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+            } label: {
+                HStack {
+                    Label("Races", systemImage: "flag.checkered")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                if races.isEmpty {
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            Image(systemName: "flag.checkered")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                            Text("No races added yet")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Button("Add Your First Race", action: onAdd)
+                                .font(.subheadline)
+                                .foregroundStyle(.orange)
+                        }
+                        .padding(.vertical, 8)
+                        Spacer()
+                    }
+                } else {
+                    ForEach(races) { race in
+                        RaceRow(race: race)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) { onDelete(race) } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                Button { onEdit(race) } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.orange)
+                            }
+                            .contextMenu {
+                                Button { onEdit(race) } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                Button(role: .destructive) { onDelete(race) } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+
+                    Button(action: onAdd) {
+                        Label("Add Race", systemImage: "plus.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+        }
+        .cardStyle()
+    }
+}
+
+private struct RaceRow: View {
+    let race: Race
+    @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: race.isPast ? "flag.checkered" : "flag.checkered.2.crossed")
+                .foregroundStyle(race.isPast ? .secondary : .orange)
+                .frame(width: 32, height: 32)
+                .background(
+                    (race.isPast ? Color.secondary : Color.orange).opacity(0.12),
+                    in: RoundedRectangle(cornerRadius: 8)
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(race.name)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(race.isPast ? .secondary : .primary)
+
+                HStack(spacing: 6) {
+                    Text(race.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("·")
+                        .foregroundStyle(.secondary)
+                    Text(distanceLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let loc = race.location.isEmpty ? nil : race.location {
+                        Text("·")
+                            .foregroundStyle(.secondary)
+                        Text(loc)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(race.countdownLabel)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(race.isPast ? .secondary : .orange)
+                if let goal = race.goalTimeSeconds {
+                    Text(formattedGoal(goal))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var distanceLabel: String {
+        if race.raceDistance == .custom {
+            if distanceUnit == DistanceUnit.kilometers.rawValue {
+                return String(format: "%.1f km", race.distanceMiles.milesToKm)
+            }
+            return String(format: "%.1f mi", race.distanceMiles)
+        }
+        return race.raceDistance.rawValue
+    }
+
+    private func formattedGoal(_ secs: Int) -> String {
+        let h = secs / 3600
+        let m = (secs % 3600) / 60
+        let s = secs % 60
+        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
+        return String(format: "%d:%02d", m, s)
     }
 }
 
@@ -113,6 +368,7 @@ private struct WeekMileageCard: View {
 private struct DaySection: View {
     let day: Date
     let workouts: [PlannedWorkout]
+    let races: [Race]
     var vm: PlanViewModel
     let calendarService: CalendarService
     @Environment(\.modelContext) private var modelContext
@@ -137,7 +393,27 @@ private struct DaySection: View {
                 }
             }
 
-            if workouts.isEmpty {
+            // Race indicator for this day
+            ForEach(races) { race in
+                HStack(spacing: 8) {
+                    Image(systemName: "flag.checkered")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text(race.name)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
+                    Text("·")
+                        .foregroundStyle(.secondary)
+                    Text(race.raceDistance.rawValue)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            }
+
+            if workouts.isEmpty && races.isEmpty {
                 Text("Rest day")
                     .font(.subheadline)
                     .foregroundStyle(.tertiary)

@@ -19,6 +19,7 @@ struct McCoyFitnessApp: App {
             CrossTrainingWorkout.self,
             StravaConnection.self,
             PlannedWorkout.self,
+            Race.self,
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
