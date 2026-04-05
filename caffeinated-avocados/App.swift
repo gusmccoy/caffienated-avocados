@@ -4,6 +4,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct McCoyFitnessApp: App {
@@ -32,6 +33,14 @@ struct McCoyFitnessApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    let enabled = UserDefaults.standard.bool(forKey: "planningReminderEnabled")
+                    guard enabled else { return }
+                    await WeeklyPlanningReminderService.requestPermission()
+                    let raw = UserDefaults.standard.object(forKey: "planningReminderMinutesSinceMidnight") as? Int ?? 720
+                    let mins = raw > 0 ? raw : 720
+                    WeeklyPlanningReminderService.scheduleReminder(hour: mins / 60, minute: mins % 60)
+                }
         }
         .modelContainer(modelContainer)
     }
