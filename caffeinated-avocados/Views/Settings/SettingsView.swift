@@ -15,6 +15,7 @@ struct SettingsView: View {
     @Query private var connections: [StravaConnection]
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @State private var showingOverrideSummary = false
 
     var body: some View {
         NavigationStack {
@@ -49,6 +50,20 @@ struct SettingsView: View {
                                 Text(lastSync.formatted(date: .abbreviated, time: .shortened))
                                     .foregroundStyle(.secondary)
                             }
+                        }
+                    }
+
+                    // Override notifications — shown after a sync that replaced manual entries
+                    if !stravaVM.overrideResults.isEmpty {
+                        Section {
+                            ForEach(stravaVM.overrideResults) { result in
+                                OverrideResultRow(result: result, vm: stravaVM, modelContext: modelContext)
+                            }
+                        } header: {
+                            Label("Overridden by Strava", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                        } footer: {
+                            Text("These manual entries were replaced because a matching Strava activity was found on the same day. Tap Undo to restore them.")
                         }
                     }
                 }
@@ -89,6 +104,49 @@ struct SettingsView: View {
                 Text(stravaVM.errorMessage ?? "")
             }
         }
+    }
+}
+
+// MARK: - Override Result Row
+
+private struct OverrideResultRow: View {
+    let result: OverrideResult
+    let vm: StravaViewModel
+    let modelContext: ModelContext
+
+    private var manualTitle: String {
+        let snap = result.snapshot
+        return snap.title.isEmpty ? snap.type.rawValue : snap.title
+    }
+
+    private var dateString: String {
+        result.snapshot.date.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .font(.subheadline)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\"\(manualTitle)\" on \(dateString)")
+                    .font(.subheadline)
+                Text("Replaced by Strava: \"\(result.stravaActivityTitle)\"")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button("Undo") {
+                vm.undoOverride(result, modelContext: modelContext)
+            }
+            .font(.caption)
+            .buttonStyle(.bordered)
+            .tint(.orange)
+        }
+        .padding(.vertical, 2)
     }
 }
 

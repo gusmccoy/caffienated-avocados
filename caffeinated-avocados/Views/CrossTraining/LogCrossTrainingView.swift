@@ -9,13 +9,25 @@ struct LogCrossTrainingView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var vm = CrossTrainingViewModel()
+    @State private var stravaConflict: WorkoutSession? = nil
     var editingSession: WorkoutSession? = nil
 
     var body: some View {
         NavigationStack {
             Form {
+                // Strava conflict warning
+                if let conflict = stravaConflict, editingSession == nil {
+                    Section {
+                        StravaConflictBanner(
+                            stravaTitle: conflict.title,
+                            workoutType: "cross-training session"
+                        )
+                    }
+                }
+
                 Section("Session Info") {
                     DatePicker("Date", selection: $vm.date, displayedComponents: .date)
+                        .onChange(of: vm.date) { _, _ in checkStravaConflict() }
                     TextField("Title (optional)", text: $vm.title)
 
                     Picker("Activity", selection: $vm.activityType) {
@@ -148,11 +160,25 @@ struct LogCrossTrainingView: View {
                         .disabled(!vm.isFormValid)
                 }
             }
+            .onAppear { checkStravaConflict() }
         }
     }
 
     private func save() {
         _ = vm.buildWorkoutSession(modelContext: modelContext)
         dismiss()
+    }
+
+    private func checkStravaConflict() {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: vm.date)
+        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return }
+        let descriptor = FetchDescriptor<WorkoutSession>(
+            predicate: #Predicate { session in
+                session.date >= dayStart && session.date < dayEnd
+            }
+        )
+        let allOnDay = (try? modelContext.fetch(descriptor)) ?? []
+        stravaConflict = allOnDay.first { $0.type == .crossTraining && $0.stravaActivityId != nil }
     }
 }
