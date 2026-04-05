@@ -136,6 +136,14 @@ struct DetailHeaderView: View {
                 Text(session.type.rawValue)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                if session.stravaActivityId != nil {
+                    Label("Strava", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.regularMaterial, in: Capsule())
+                }
                 Spacer()
                 Text(session.date.formatted(date: .long, time: .omitted))
                     .font(.caption)

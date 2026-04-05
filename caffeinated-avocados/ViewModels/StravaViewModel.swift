@@ -6,6 +6,84 @@ import SwiftData
 import Observation
 import AuthenticationServices
 
+// MARK: - Override tracking types
+
+/// Captures all data from a manually-entered session so it can be restored if the user undoes a Strava override.
+struct OverriddenSessionSnapshot {
+    let date: Date
+    let type: WorkoutType
+    let title: String
+    let notes: String
+    let durationSeconds: Int
+    let intensityLevel: IntensityLevel
+    let caloriesBurned: Int?
+    let heartRateAvg: Int?
+    let heartRateMax: Int?
+    // Running-specific
+    let distanceMiles: Double?
+    let runType: RunType?
+    let averagePaceSecondsPerMile: Int?
+    let elevationGainFeet: Double?
+    let cadenceAvg: Int?
+    let route: String?
+    // Cross-training-specific
+    let crossTrainingType: CrossTrainingActivityType?
+    let ctDistanceMiles: Double?
+    let avgPowerWatts: Int?
+    let ctElevationGainFeet: Double?
+
+    init(from session: WorkoutSession) {
+        date = session.date
+        type = session.type
+        title = session.title
+        notes = session.notes
+        durationSeconds = session.durationSeconds
+        intensityLevel = session.intensityLevel
+        caloriesBurned = session.caloriesBurned
+        heartRateAvg = session.heartRateAvg
+        heartRateMax = session.heartRateMax
+
+        if let run = session.runningWorkout {
+            distanceMiles = run.distanceMiles
+            runType = run.runType
+            averagePaceSecondsPerMile = run.averagePaceSecondsPerMile
+            elevationGainFeet = run.elevationGainFeet
+            cadenceAvg = run.cadenceAvg
+            route = run.route
+        } else {
+            distanceMiles = nil
+            runType = nil
+            averagePaceSecondsPerMile = nil
+            elevationGainFeet = nil
+            cadenceAvg = nil
+            route = nil
+        }
+
+        if let ct = session.crossTrainingWorkout {
+            crossTrainingType = ct.activityType
+            ctDistanceMiles = ct.distanceMiles
+            avgPowerWatts = ct.avgPowerWatts
+            ctElevationGainFeet = ct.elevationGainFeet
+        } else {
+            crossTrainingType = nil
+            ctDistanceMiles = nil
+            avgPowerWatts = nil
+            ctElevationGainFeet = nil
+        }
+    }
+}
+
+/// Records that a manual session was replaced by a Strava import, enabling the user to undo.
+struct OverrideResult: Identifiable {
+    let id = UUID()
+    let snapshot: OverriddenSessionSnapshot
+    let stravaActivityTitle: String
+    /// The Strava activity ID string stored on the WorkoutSession — used to find and delete the Strava session on undo.
+    let stravaActivityId: String
+}
+
+// MARK: - ViewModel
+
 @Observable
 final class StravaViewModel {
 
@@ -16,7 +94,10 @@ final class StravaViewModel {
     var recentActivities: [StravaActivity] = []
     var connectedAthlete: StravaAthlete? = nil
     var lastSyncDate: Date? = nil
-    var importProgress: Double = 0          // 0..1 for progress indicator
+    var importProgress: Double = 0
+
+    /// Manual sessions replaced during the last sync. Shown to the user with an undo option.
+    var overrideResults: [OverrideResult] = []
 
     private let stravaService = StravaService()
 
@@ -50,13 +131,13 @@ final class StravaViewModel {
         isLoading = true
         errorMessage = nil
         importProgress = 0
+        overrideResults = []
 
         do {
             let activities = try await stravaService.fetchRecentActivities()
             recentActivities = activities
             importProgress = 0.5
 
-            // Import activities that don't already exist locally
             for (index, activity) in activities.enumerated() {
                 await importActivity(activity, modelContext: modelContext)
                 importProgress = 0.5 + (Double(index + 1) / Double(activities.count)) * 0.5
@@ -71,20 +152,97 @@ final class StravaViewModel {
         importProgress = 0
     }
 
+    // MARK: - Undo override
+
+    /// Deletes the Strava-imported session and restores the original manual entry.
+    @MainActor
+    func undoOverride(_ result: OverrideResult, modelContext: ModelContext) {
+        // Find and delete the Strava session that replaced the manual one
+        let stravaId = result.stravaActivityId
+        let descriptor = FetchDescriptor<WorkoutSession>(
+            predicate: #Predicate { $0.stravaActivityId == stravaId }
+        )
+        if let stravaSession = try? modelContext.fetch(descriptor).first {
+            modelContext.delete(stravaSession)
+        }
+
+        // Recreate the manual session from the snapshot
+        let snap = result.snapshot
+        let session = WorkoutSession(
+            date: snap.date,
+            type: snap.type,
+            title: snap.title,
+            notes: snap.notes,
+            durationSeconds: snap.durationSeconds,
+            intensityLevel: snap.intensityLevel,
+            caloriesBurned: snap.caloriesBurned,
+            heartRateAvg: snap.heartRateAvg,
+            heartRateMax: snap.heartRateMax
+        )
+
+        if snap.type == .running, let dist = snap.distanceMiles {
+            let run = RunningWorkout(
+                distanceMiles: dist,
+                runType: snap.runType ?? .other,
+                averagePaceSecondsPerMile: snap.averagePaceSecondsPerMile ?? 0,
+                elevationGainFeet: snap.elevationGainFeet,
+                cadenceAvg: snap.cadenceAvg,
+                route: snap.route
+            )
+            run.session = session
+            session.runningWorkout = run
+            modelContext.insert(run)
+        } else if snap.type == .crossTraining, let ctType = snap.crossTrainingType {
+            let ct = CrossTrainingWorkout(
+                activityType: ctType,
+                distanceMiles: snap.ctDistanceMiles,
+                avgPowerWatts: snap.avgPowerWatts,
+                elevationGainFeet: snap.ctElevationGainFeet
+            )
+            ct.session = session
+            session.crossTrainingWorkout = ct
+            modelContext.insert(ct)
+        }
+
+        modelContext.insert(session)
+        overrideResults.removeAll { $0.id == result.id }
+    }
+
     // MARK: - Private import logic
 
     @MainActor
     private func importActivity(_ activity: StravaActivity, modelContext: ModelContext) async {
         // Check if this Strava activity is already saved
         let activityId = String(activity.id)
-        let descriptor = FetchDescriptor<WorkoutSession>(
+        let dupDescriptor = FetchDescriptor<WorkoutSession>(
             predicate: #Predicate { $0.stravaActivityId == activityId }
         )
-        guard let existing = try? modelContext.fetch(descriptor), existing.isEmpty else { return }
+        guard let existing = try? modelContext.fetch(dupDescriptor), existing.isEmpty else { return }
 
         // Map Strava sport type → our WorkoutType
         let workoutType = mapStravaType(activity.sportType)
 
+        // Detect conflicting manual sessions on the same calendar day + same type.
+        // Strava is the source of truth — manual entries are deleted and the user is notified.
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: activity.startDate)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+        let manualDescriptor = FetchDescriptor<WorkoutSession>(
+            predicate: #Predicate { session in
+                session.date >= dayStart && session.date < dayEnd
+            }
+        )
+        let allOnDay = (try? modelContext.fetch(manualDescriptor)) ?? []
+        let conflicting = allOnDay.filter { $0.type == workoutType && $0.stravaActivityId == nil }
+
+        // Capture snapshots before deletion so the user can undo
+        var newOverrides: [(OverriddenSessionSnapshot, String)] = []
+        for manual in conflicting {
+            newOverrides.append((OverriddenSessionSnapshot(from: manual), activity.name))
+            modelContext.delete(manual)
+        }
+
+        // Create and insert the Strava-sourced session
         let session = WorkoutSession(
             date: activity.startDate,
             type: workoutType,
@@ -92,7 +250,7 @@ final class StravaViewModel {
             durationSeconds: activity.movingTime,
             heartRateAvg: activity.averageHeartrate.map(Int.init),
             heartRateMax: activity.maxHeartrate.map(Int.init),
-            stravaActivityId: String(activity.id)
+            stravaActivityId: activityId
         )
 
         if workoutType == .running {
@@ -120,6 +278,15 @@ final class StravaViewModel {
         }
 
         modelContext.insert(session)
+
+        // Record each override now that the Strava session's activityId is known
+        for (snapshot, stravaTitle) in newOverrides {
+            overrideResults.append(OverrideResult(
+                snapshot: snapshot,
+                stravaActivityTitle: stravaTitle,
+                stravaActivityId: activityId
+            ))
+        }
     }
 
     private func mapStravaType(_ sportType: String) -> WorkoutType {

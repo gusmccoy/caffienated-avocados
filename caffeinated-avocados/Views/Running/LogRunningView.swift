@@ -9,14 +9,26 @@ struct LogRunningView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var vm = RunningViewModel()
+    @State private var stravaConflict: WorkoutSession? = nil
     var editingSession: WorkoutSession? = nil
 
     var body: some View {
         NavigationStack {
             Form {
+                // Strava conflict warning
+                if let conflict = stravaConflict, editingSession == nil {
+                    Section {
+                        StravaConflictBanner(
+                            stravaTitle: conflict.title,
+                            workoutType: "run"
+                        )
+                    }
+                }
+
                 // Basic info
                 Section("Workout Info") {
                     DatePicker("Date", selection: $vm.date, displayedComponents: .date)
+                        .onChange(of: vm.date) { _, _ in checkStravaConflict() }
                     TextField("Title (optional)", text: $vm.title)
                     Picker("Run Type", selection: $vm.runType) {
                         ForEach(RunType.allCases, id: \.self) { Text($0.rawValue).tag($0) }
@@ -105,6 +117,7 @@ struct LogRunningView: View {
                 if let session = editingSession {
                     vm.populate(from: session)
                 }
+                checkStravaConflict()
             }
         }
     }
@@ -137,6 +150,19 @@ struct LogRunningView: View {
         run.cadenceAvg = Int(vm.cadenceAvg)
         run.route = vm.route.isEmpty ? nil : vm.route
     }
+
+    private func checkStravaConflict() {
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: vm.date)
+        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return }
+        let descriptor = FetchDescriptor<WorkoutSession>(
+            predicate: #Predicate { session in
+                session.date >= dayStart && session.date < dayEnd
+            }
+        )
+        let allOnDay = (try? modelContext.fetch(descriptor)) ?? []
+        stravaConflict = allOnDay.first { $0.type == .running && $0.stravaActivityId != nil }
+    }
 }
 
 // MARK: - Duration Picker
@@ -163,5 +189,27 @@ struct DurationPicker: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+// MARK: - Shared Strava Conflict Banner
+
+struct StravaConflictBanner: View {
+    let stravaTitle: String
+    let workoutType: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Strava activity exists for this date")
+                    .font(.subheadline).bold()
+                Text("\"\(stravaTitle)\" was already synced from Strava. Saving a manual \(workoutType) on the same day may create a duplicate.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }

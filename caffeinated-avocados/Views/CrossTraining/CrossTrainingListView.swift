@@ -88,8 +88,15 @@ private struct CrossTrainingRowView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(session.title.isEmpty ? activityType.rawValue : session.title)
-                    .font(.subheadline).bold()
+                HStack(spacing: 4) {
+                    Text(session.title.isEmpty ? activityType.rawValue : session.title)
+                        .font(.subheadline).bold()
+                    if session.stravaActivityId != nil {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 HStack(spacing: 6) {
                     Text(session.date.formatted(date: .abbreviated, time: .omitted))
                         .font(.caption).foregroundStyle(.secondary)

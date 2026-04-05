@@ -150,8 +150,15 @@ private struct RunningRowView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(session.title.isEmpty ? (session.runningWorkout?.runType.rawValue ?? "Run") : session.title)
-                    .font(.subheadline).bold()
+                HStack(spacing: 4) {
+                    Text(session.title.isEmpty ? (session.runningWorkout?.runType.rawValue ?? "Run") : session.title)
+                        .font(.subheadline).bold()
+                    if session.stravaActivityId != nil {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 HStack(spacing: 8) {
                     if let run = session.runningWorkout {
