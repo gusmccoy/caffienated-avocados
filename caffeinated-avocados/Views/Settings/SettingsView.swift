@@ -68,6 +68,15 @@ struct SettingsView: View {
                     }
                 }
 
+                // Reminders
+                Section {
+                    PlanningReminderRow()
+                } header: {
+                    Text("Reminders")
+                } footer: {
+                    Text("Sends a notification every Sunday reminding you to plan the following week.")
+                }
+
                 // Preferences
                 Section("Display") {
                     NavigationLink("Units & Measurements") {
@@ -262,6 +271,55 @@ struct ExportView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle("Export")
+    }
+}
+
+// MARK: - Planning Reminder Row
+
+private struct PlanningReminderRow: View {
+    @AppStorage("planningReminderEnabled") private var enabled: Bool = false
+    @AppStorage("planningReminderMinutesSinceMidnight") private var reminderMinutes: Int = 720
+
+    private var reminderTime: Binding<Date> {
+        Binding(
+            get: {
+                let mins = reminderMinutes > 0 ? reminderMinutes : 720
+                return Calendar.current.date(
+                    bySettingHour: mins / 60,
+                    minute: mins % 60,
+                    second: 0,
+                    of: .now
+                ) ?? .now
+            },
+            set: { date in
+                let h = Calendar.current.component(.hour, from: date)
+                let m = Calendar.current.component(.minute, from: date)
+                reminderMinutes = h * 60 + m
+                WeeklyPlanningReminderService.scheduleReminder(hour: h, minute: m)
+            }
+        )
+    }
+
+    var body: some View {
+        Toggle("Sunday Planning Reminder", isOn: Binding(
+            get: { enabled },
+            set: { newValue in
+                enabled = newValue
+                if newValue {
+                    Task {
+                        await WeeklyPlanningReminderService.requestPermission()
+                        let mins = reminderMinutes > 0 ? reminderMinutes : 720
+                        WeeklyPlanningReminderService.scheduleReminder(hour: mins / 60, minute: mins % 60)
+                    }
+                } else {
+                    WeeklyPlanningReminderService.cancelReminder()
+                }
+            }
+        ))
+
+        if enabled {
+            DatePicker("Reminder Time", selection: reminderTime, displayedComponents: .hourAndMinute)
+        }
     }
 }
 

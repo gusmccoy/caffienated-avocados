@@ -21,6 +21,14 @@ struct PlanView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    // Sunday planning prompt (only when next week has no workouts)
+                    if shouldShowPlanningBanner {
+                        PlanningReminderBanner {
+                            let nextMonday = Calendar.current.date(byAdding: .day, value: 1, to: Date.now.startOfDay)!
+                            vm.weekStart = nextMonday
+                        }
+                    }
+
                     // Next upcoming race banner (if any)
                     if let next = nextUpcomingRace {
                         NextRaceBanner(race: next)
@@ -73,6 +81,14 @@ struct PlanView: View {
         vm.workoutsInCurrentWeek(from: allPlanned)
     }
 
+    private var shouldShowPlanningBanner: Bool {
+        let weekday = Calendar.current.component(.weekday, from: .now)
+        guard weekday == 1 else { return false } // 1 = Sunday
+        let nextMonday = Calendar.current.date(byAdding: .day, value: 1, to: Date.now.startOfDay)!
+        let weekAfter  = Calendar.current.date(byAdding: .day, value: 8, to: Date.now.startOfDay)!
+        return !allPlanned.contains { $0.date >= nextMonday && $0.date < weekAfter }
+    }
+
     private var nextUpcomingRace: Race? {
         allRaces.first { !$0.isPast }
     }
@@ -86,6 +102,38 @@ struct PlanView: View {
 
     private func deleteRace(_ race: Race) {
         modelContext.delete(race)
+    }
+}
+
+// MARK: - Planning Reminder Banner
+
+private struct PlanningReminderBanner: View {
+    let onPlanNextWeek: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.title2)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Plan Next Week")
+                    .font(.subheadline.weight(.semibold))
+                Text("No workouts scheduled yet for next week.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button("Plan", action: onPlanNextWeek)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.orange, in: Capsule())
+                .foregroundStyle(.white)
+        }
+        .cardStyle()
     }
 }
 
@@ -229,7 +277,7 @@ private struct RaceRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: race.isPast ? "flag.checkered" : "flag.checkered.2.crossed")
-                .foregroundStyle(race.isPast ? .secondary : .orange)
+                .foregroundStyle(race.isPast ? Color.secondary : Color.orange)
                 .frame(width: 32, height: 32)
                 .background(
                     (race.isPast ? Color.secondary : Color.orange).opacity(0.12),
@@ -266,7 +314,7 @@ private struct RaceRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(race.countdownLabel)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(race.isPast ? .secondary : .orange)
+                    .foregroundStyle(race.isPast ? Color.secondary : Color.orange)
                 if let goal = race.goalTimeSeconds {
                     Text(formattedGoal(goal))
                         .font(.caption2)
