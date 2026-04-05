@@ -33,7 +33,7 @@ struct AddPlannedWorkoutView: View {
                 }
 
                 if vm.formShowsDistance {
-                    Section("Distance") {
+                    Section("Distance (optional)") {
                         HStack {
                             Text("Miles")
                             Spacer()
@@ -41,6 +41,14 @@ struct AddPlannedWorkoutView: View {
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                         }
+                    }
+                }
+
+                Section("Duration (optional)") {
+                    HStack {
+                        DurationPicker(label: "h", value: $vm.formHours, range: 0...23)
+                        DurationPicker(label: "m", value: $vm.formMinutes, range: 0...59)
+                        DurationPicker(label: "s", value: $vm.formSeconds, range: 0...59)
                     }
                 }
 
@@ -96,6 +104,7 @@ struct AddPlannedWorkoutView: View {
             workoutType: vm.formType,
             title: vm.formTitle.isEmpty ? vm.formType.rawValue : vm.formTitle,
             plannedDistanceMiles: vm.formShowsDistance ? vm.formDistanceMiles : 0,
+            plannedDurationSeconds: vm.formDurationSeconds,
             notes: vm.formNotes,
             intensityLevel: vm.formIntensity
         )
@@ -118,11 +127,11 @@ struct AddPlannedWorkoutView: View {
         workout.workoutType = vm.formType
         workout.title = vm.formTitle.isEmpty ? vm.formType.rawValue : vm.formTitle
         workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formDistanceMiles : 0
+        workout.plannedDurationSeconds = vm.formDurationSeconds
         workout.notes = vm.formNotes
         workout.intensityLevel = vm.formIntensity
 
         Task { @MainActor in
-            // Delete the old calendar event and create a fresh one with updated details
             if let id = oldEventId {
                 try? await calendarService.deleteEvent(identifier: id)
             }

@@ -210,6 +210,7 @@ private struct StravaConnectionRow: View {
 struct UnitsPreferenceView: View {
     @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
     @AppStorage("weightUnit")   private var weightUnit: String   = WeightUnit.lbs.rawValue
+    @AppStorage("planCompletionThreshold") private var planCompletionThreshold: Double = 5.0
 
     var body: some View {
         Form {
@@ -225,8 +226,22 @@ struct UnitsPreferenceView: View {
                 }
                 .pickerStyle(.segmented)
             }
+            Section {
+                Stepper(value: $planCompletionThreshold, in: 1...25, step: 1) {
+                    HStack {
+                        Text("Completion Threshold")
+                        Spacer()
+                        Text("\(Int(planCompletionThreshold))%")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Plan Matching")
+            } footer: {
+                Text("When a synced activity is within this percentage of a planned workout's distance or duration, the planned workout is marked as completed.")
+            }
         }
-        .navigationTitle("Units")
+        .navigationTitle("Units & Matching")
     }
 }
 

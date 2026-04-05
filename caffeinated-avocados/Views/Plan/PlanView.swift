@@ -197,34 +197,65 @@ private struct PlannedWorkoutRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: workout.workoutType.systemImage)
-                .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(typeColor, in: RoundedRectangle(cornerRadius: 8))
+            ZStack(alignment: .bottomTrailing) {
+                Image(systemName: workout.workoutType.systemImage)
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(typeColor.opacity(workout.isCompleted ? 0.5 : 1), in: RoundedRectangle(cornerRadius: 8))
+
+                if workout.isCompleted {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.green)
+                        .background(Color.white, in: Circle())
+                        .offset(x: 5, y: 5)
+                }
+            }
+            .padding(.bottom, workout.isCompleted ? 4 : 0)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(workout.title)
-                    .font(.subheadline.weight(.medium))
+                HStack(spacing: 6) {
+                    Text(workout.title)
+                        .font(.subheadline.weight(.medium))
+                        .strikethrough(workout.isCompleted, color: .secondary)
+                    if workout.isCompleted {
+                        Text("Completed")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Color.green.opacity(0.12), in: Capsule())
+                    }
+                }
 
                 HStack(spacing: 8) {
-                    Text(workout.intensityLevel.rawValue)
-                        .font(.caption2.weight(.medium))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.intensityColor(workout.intensityLevel).opacity(0.15),
-                                    in: Capsule())
-                        .foregroundStyle(Color.intensityColor(workout.intensityLevel))
+                    if !workout.isCompleted {
+                        Text(workout.intensityLevel.rawValue)
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.intensityColor(workout.intensityLevel).opacity(0.15),
+                                        in: Capsule())
+                            .foregroundStyle(Color.intensityColor(workout.intensityLevel))
+                    }
 
                     if workout.plannedDistanceMiles > 0 {
                         Text(distanceText)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    if workout.plannedDurationSeconds > 0 {
+                        Text(formattedDuration)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
-            if workout.calendarEventIdentifier != nil {
-                Spacer()
+            Spacer()
+
+            if workout.calendarEventIdentifier != nil && !workout.isCompleted {
                 Image(systemName: "calendar.badge.checkmark")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -245,5 +276,13 @@ private struct PlannedWorkoutRow: View {
             return String(format: "%.2f km", workout.plannedDistanceMiles.milesToKm)
         }
         return String(format: "%.2f mi", workout.plannedDistanceMiles)
+    }
+
+    private var formattedDuration: String {
+        let s = workout.plannedDurationSeconds
+        let h = s / 3600
+        let m = (s % 3600) / 60
+        if h > 0 { return String(format: "%dh %02dm", h, m) }
+        return String(format: "%dm", m)
     }
 }

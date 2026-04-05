@@ -74,9 +74,14 @@ final class PlanViewModel {
     var formType: WorkoutType = .running
     var formTitle: String = ""
     var formDistanceMiles: Double = 0
+    var formHours: Int = 0
+    var formMinutes: Int = 0
+    var formSeconds: Int = 0
     var formNotes: String = ""
     var formIntensity: IntensityLevel = .moderate
     var calendarAuthorizationDenied: Bool = false
+
+    var formDurationSeconds: Int { formHours * 3600 + formMinutes * 60 + formSeconds }
 
     var isEditing: Bool { editingWorkout != nil }
 
@@ -90,6 +95,9 @@ final class PlanViewModel {
         formType = .running
         formTitle = ""
         formDistanceMiles = 0
+        formHours = 0
+        formMinutes = 0
+        formSeconds = 0
         formNotes = ""
         formIntensity = .moderate
         calendarAuthorizationDenied = false
@@ -102,6 +110,10 @@ final class PlanViewModel {
         formType = workout.workoutType
         formTitle = workout.title
         formDistanceMiles = workout.plannedDistanceMiles
+        let d = workout.plannedDurationSeconds
+        formHours   = d / 3600
+        formMinutes = (d % 3600) / 60
+        formSeconds = d % 60
         formNotes = workout.notes
         formIntensity = workout.intensityLevel
         calendarAuthorizationDenied = false
@@ -113,6 +125,9 @@ final class PlanViewModel {
         editingWorkout = nil
         formTitle = ""
         formDistanceMiles = 0
+        formHours = 0
+        formMinutes = 0
+        formSeconds = 0
         formNotes = ""
         formIntensity = .moderate
         calendarAuthorizationDenied = false
