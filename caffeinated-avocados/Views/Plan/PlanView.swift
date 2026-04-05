@@ -16,6 +16,7 @@ struct PlanView: View {
 
     @State private var showingAddRace = false
     @State private var editingRace: Race? = nil
+    @State private var showingCopyConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -71,6 +72,27 @@ struct PlanView: View {
                         Label("Re-match Activities", systemImage: "arrow.triangle.2.circlepath")
                     }
                 }
+                ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        if vm.currentWeekHasWorkouts(from: allPlanned) {
+                            showingCopyConfirmation = true
+                        } else {
+                            vm.copyPreviousWeek(from: allPlanned, modelContext: modelContext)
+                        }
+                    } label: {
+                        Label("Copy Last Week", systemImage: "doc.on.doc")
+                    }
+                }
+            }
+            .confirmationDialog(
+                "This week already has workouts. Copy last week's plan anyway?",
+                isPresented: $showingCopyConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Copy Last Week") {
+                    vm.copyPreviousWeek(from: allPlanned, modelContext: modelContext)
+                }
+                Button("Cancel", role: .cancel) {}
             }
             .sheet(isPresented: $vm.isShowingAddSheet) {
                 AddPlannedWorkoutView(vm: vm, calendarService: calendarService)
