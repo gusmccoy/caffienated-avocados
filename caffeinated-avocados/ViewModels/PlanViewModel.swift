@@ -249,6 +249,36 @@ final class PlanViewModel {
         }
     }
 
+    // MARK: - Copy Previous Week
+
+    /// Returns true if the currently displayed week already has any planned workouts.
+    func currentWeekHasWorkouts(from all: [PlannedWorkout]) -> Bool {
+        !workoutsInCurrentWeek(from: all).isEmpty
+    }
+
+    /// Copies all planned workouts from the previous week into the current week.
+    /// Shifts each date forward by 7 days. Resets completion state and calendar event ID.
+    func copyPreviousWeek(from all: [PlannedWorkout], modelContext: ModelContext) {
+        let prevStart = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: weekStart.startOfDay) ?? weekStart
+        let prevEnd = weekStart.startOfDay
+
+        let previousWeekWorkouts = all.filter { $0.date >= prevStart && $0.date < prevEnd }
+
+        for source in previousWeekWorkouts {
+            let newDate = Calendar.current.date(byAdding: .day, value: 7, to: source.date) ?? source.date
+            let copy = PlannedWorkout(
+                date: newDate,
+                workoutType: source.workoutType,
+                title: source.title,
+                plannedDistanceMiles: source.plannedDistanceMiles,
+                plannedDurationSeconds: source.plannedDurationSeconds,
+                notes: source.notes,
+                intensityLevel: source.intensityLevel
+            )
+            modelContext.insert(copy)
+        }
+    }
+
     // MARK: - Private
 
     static func currentWeekMonday() -> Date {

@@ -22,11 +22,15 @@ struct DashboardView: View {
         listVM.weeklySummary(from: sessions)
     }
 
+    private var weekDelta: WorkoutListViewModel.WeekOverWeekDelta {
+        listVM.weekOverWeekDelta(from: sessions)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    WeeklySummaryCard(summary: weeklySummary)
+                    WeeklySummaryCard(summary: weeklySummary, delta: weekDelta)
                     QuickAddRow(
                         showingLogRunning: $showingLogRunning,
                         showingLogStrength: $showingLogStrength,
@@ -77,18 +81,46 @@ struct DashboardView: View {
 
 private struct WeeklySummaryCard: View {
     let summary: WorkoutListViewModel.WeeklySummary
+    let delta: WorkoutListViewModel.WeekOverWeekDelta
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("This Week")
-                .font(.title3).bold()
+            HStack {
+                Text("This Week")
+                    .font(.title3).bold()
+                Spacer()
+                Text("vs. same point last week")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
 
             HStack(spacing: 0) {
-                StatCell(value: "\(summary.totalWorkouts)", label: "Workouts", icon: "flame.fill", color: .orange)
-                Divider().frame(height: 50)
-                StatCell(value: summary.formattedDuration, label: "Time", icon: "clock.fill", color: .blue)
-                Divider().frame(height: 50)
-                StatCell(value: String(format: "%.1f", summary.runningMiles), label: "Miles", icon: "figure.run", color: .green)
+                StatCell(
+                    value: "\(summary.totalWorkouts)",
+                    label: "Workouts",
+                    icon: "flame.fill",
+                    color: .orange,
+                    deltaText: delta.workoutsLabel,
+                    deltaColor: delta.workoutsColor
+                )
+                Divider().frame(height: 60)
+                StatCell(
+                    value: summary.formattedDuration,
+                    label: "Time",
+                    icon: "clock.fill",
+                    color: .blue,
+                    deltaText: delta.durationLabel,
+                    deltaColor: delta.durationColor
+                )
+                Divider().frame(height: 60)
+                StatCell(
+                    value: String(format: "%.1f", summary.runningMiles),
+                    label: "Miles",
+                    icon: "figure.run",
+                    color: .green,
+                    deltaText: delta.milesLabel,
+                    deltaColor: delta.milesColor
+                )
             }
             .frame(maxWidth: .infinity)
             .padding()
@@ -102,6 +134,8 @@ private struct StatCell: View {
     let label: String
     let icon: String
     let color: Color
+    var deltaText: String? = nil
+    var deltaColor: Color? = nil
 
     var body: some View {
         VStack(spacing: 4) {
@@ -112,6 +146,12 @@ private struct StatCell: View {
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if let text = deltaText {
+                Text(text)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(deltaColor ?? .secondary)
+                    .transition(.opacity)
+            }
         }
         .frame(maxWidth: .infinity)
     }
