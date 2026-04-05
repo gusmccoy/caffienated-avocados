@@ -279,6 +279,21 @@ final class StravaViewModel {
 
         modelContext.insert(session)
 
+        // Match against planned workouts for this day and mark any close enough as completed
+        let importedMiles: Double = {
+            if workoutType == .running { return activity.distanceMiles }
+            if workoutType == .crossTraining, activity.distance > 0 { return activity.distanceMiles }
+            return 0
+        }()
+        matchPlannedWorkouts(
+            on: activity.startDate,
+            type: workoutType,
+            importedMiles: importedMiles,
+            importedDurationSeconds: activity.movingTime,
+            stravaActivityId: activityId,
+            modelContext: modelContext
+        )
+
         // Record each override now that the Strava session's activityId is known
         for (snapshot, stravaTitle) in newOverrides {
             overrideResults.append(OverrideResult(
@@ -286,6 +301,52 @@ final class StravaViewModel {
                 stravaActivityTitle: stravaTitle,
                 stravaActivityId: activityId
             ))
+        }
+    }
+
+    private func matchPlannedWorkouts(
+        on date: Date,
+        type workoutType: WorkoutType,
+        importedMiles: Double,
+        importedDurationSeconds: Int,
+        stravaActivityId: String,
+        modelContext: ModelContext
+    ) {
+        let threshold = max(0.01, UserDefaults.standard.double(forKey: "planCompletionThreshold") == 0
+            ? 0.05
+            : UserDefaults.standard.double(forKey: "planCompletionThreshold") / 100.0)
+
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: date)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+
+        let descriptor = FetchDescriptor<PlannedWorkout>(
+            predicate: #Predicate { pw in
+                pw.date >= dayStart && pw.date < dayEnd && pw.isCompleted == false
+            }
+        )
+        let candidates = (try? modelContext.fetch(descriptor)) ?? []
+
+        for pw in candidates where pw.workoutType == workoutType {
+            var matched = false
+
+            // Distance match
+            if pw.plannedDistanceMiles > 0 && importedMiles > 0 {
+                let delta = abs(importedMiles - pw.plannedDistanceMiles) / pw.plannedDistanceMiles
+                if delta <= threshold { matched = true }
+            }
+
+            // Duration match
+            if !matched && pw.plannedDurationSeconds > 0 && importedDurationSeconds > 0 {
+                let delta = abs(Double(importedDurationSeconds) - Double(pw.plannedDurationSeconds))
+                    / Double(pw.plannedDurationSeconds)
+                if delta <= threshold { matched = true }
+            }
+
+            if matched {
+                pw.isCompleted = true
+                pw.completedByStravaActivityId = stravaActivityId
+            }
         }
     }
 

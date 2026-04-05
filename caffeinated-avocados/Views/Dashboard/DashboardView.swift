@@ -9,6 +9,9 @@ struct DashboardView: View {
     @State private var listVM = WorkoutListViewModel()
     @State private var showingAddWorkout = false
     @State private var showingSettings = false
+    @State private var showingLogRunning = false
+    @State private var showingLogStrength = false
+    @State private var showingLogCrossTraining = false
 
     // Grab just the 5 most recent workouts for the "Recent" section
     private var recentSessions: [WorkoutSession] {
@@ -24,7 +27,11 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     WeeklySummaryCard(summary: weeklySummary)
-                    QuickAddRow(showingAddWorkout: $showingAddWorkout)
+                    QuickAddRow(
+                        showingLogRunning: $showingLogRunning,
+                        showingLogStrength: $showingLogStrength,
+                        showingLogCrossTraining: $showingLogCrossTraining
+                    )
                     RecentWorkoutsSection(sessions: recentSessions)
                 }
                 .padding()
@@ -49,6 +56,15 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $showingAddWorkout) {
                 AddWorkoutView()
+            }
+            .sheet(isPresented: $showingLogRunning) {
+                LogRunningView()
+            }
+            .sheet(isPresented: $showingLogStrength) {
+                LogStrengthView()
+            }
+            .sheet(isPresented: $showingLogCrossTraining) {
+                LogCrossTrainingView()
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
@@ -104,7 +120,9 @@ private struct StatCell: View {
 // MARK: - Quick Add Row
 
 private struct QuickAddRow: View {
-    @Binding var showingAddWorkout: Bool
+    @Binding var showingLogRunning: Bool
+    @Binding var showingLogStrength: Bool
+    @Binding var showingLogCrossTraining: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -112,9 +130,9 @@ private struct QuickAddRow: View {
                 .font(.title3).bold()
 
             HStack(spacing: 12) {
-                QuickAddButton(type: .running, showingAdd: $showingAddWorkout)
-                QuickAddButton(type: .strength, showingAdd: $showingAddWorkout)
-                QuickAddButton(type: .crossTraining, showingAdd: $showingAddWorkout)
+                QuickAddButton(type: .running) { showingLogRunning = true }
+                QuickAddButton(type: .strength) { showingLogStrength = true }
+                QuickAddButton(type: .crossTraining) { showingLogCrossTraining = true }
             }
         }
     }
@@ -122,12 +140,10 @@ private struct QuickAddRow: View {
 
 private struct QuickAddButton: View {
     let type: WorkoutType
-    @Binding var showingAdd: Bool
+    let action: () -> Void
 
     var body: some View {
-        Button {
-            showingAdd = true
-        } label: {
+        Button(action: action) {
             VStack(spacing: 6) {
                 Image(systemName: type.systemImage)
                     .font(.title2)

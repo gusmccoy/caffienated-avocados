@@ -11,12 +11,18 @@ final class PlannedWorkout {
     var date: Date
     var workoutType: WorkoutType
     var title: String
-    /// Always stored in miles (0 for strength workouts).
+    /// Always stored in miles (0 for strength workouts or when not set).
     var plannedDistanceMiles: Double
+    /// Optional planned duration in seconds (0 = not set).
+    var plannedDurationSeconds: Int
     var notes: String
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
+    /// True when an imported activity matched this planned workout within the configured threshold.
+    var isCompleted: Bool
+    /// The stravaActivityId of the session that completed this planned workout, if applicable.
+    var completedByStravaActivityId: String?
     var createdAt: Date
 
     init(
@@ -24,18 +30,24 @@ final class PlannedWorkout {
         workoutType: WorkoutType,
         title: String = "",
         plannedDistanceMiles: Double = 0,
+        plannedDurationSeconds: Int = 0,
         notes: String = "",
         intensityLevel: IntensityLevel = .moderate,
-        calendarEventIdentifier: String? = nil
+        calendarEventIdentifier: String? = nil,
+        isCompleted: Bool = false,
+        completedByStravaActivityId: String? = nil
     ) {
         self.id = UUID()
         self.date = date
         self.workoutType = workoutType
         self.title = title
         self.plannedDistanceMiles = plannedDistanceMiles
+        self.plannedDurationSeconds = plannedDurationSeconds
         self.notes = notes
         self.intensityLevel = intensityLevel
         self.calendarEventIdentifier = calendarEventIdentifier
+        self.isCompleted = isCompleted
+        self.completedByStravaActivityId = completedByStravaActivityId
         self.createdAt = .now
     }
 }
