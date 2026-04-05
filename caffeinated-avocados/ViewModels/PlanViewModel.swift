@@ -3,6 +3,7 @@
 
 import Foundation
 import Observation
+import SwiftData
 
 @Observable
 final class PlanViewModel {
@@ -131,6 +132,121 @@ final class PlanViewModel {
         formNotes = ""
         formIntensity = .moderate
         calendarAuthorizationDenied = false
+    }
+
+    // MARK: - Plan Completion
+
+    /// Creates a stub WorkoutSession and marks the plan as completed manually.
+    func markPlanComplete(_ workout: PlannedWorkout, modelContext: ModelContext) {
+        let session = WorkoutSession(
+            date: workout.date,
+            type: workout.workoutType,
+            title: workout.title,
+            notes: workout.notes,
+            durationSeconds: workout.plannedDurationSeconds,
+            intensityLevel: workout.intensityLevel
+        )
+        session.isManualPlanCompletion = true
+
+        switch workout.workoutType {
+        case .running:
+            let run = RunningWorkout(
+                distanceMiles: workout.plannedDistanceMiles,
+                runType: .other,
+                averagePaceSecondsPerMile: 0
+            )
+            run.session = session
+            session.runningWorkout = run
+            modelContext.insert(run)
+        case .crossTraining:
+            let ct = CrossTrainingWorkout(
+                activityType: .other,
+                distanceMiles: workout.plannedDistanceMiles > 0 ? workout.plannedDistanceMiles : nil
+            )
+            ct.session = session
+            session.crossTrainingWorkout = ct
+            modelContext.insert(ct)
+        case .strength:
+            let strength = StrengthWorkout()
+            strength.session = session
+            session.strengthWorkout = strength
+            modelContext.insert(strength)
+        }
+
+        modelContext.insert(session)
+        workout.isCompleted = true
+        workout.completedByStravaActivityId = "manual_\(session.id.uuidString)"
+    }
+
+    /// Deletes the stub session and unmarks the plan as complete (only for manual completions).
+    func unmarkPlanComplete(_ workout: PlannedWorkout, modelContext: ModelContext) {
+        if let ref = workout.completedByStravaActivityId, ref.hasPrefix("manual_") {
+            let uuidString = String(ref.dropFirst("manual_".count))
+            if let uuid = UUID(uuidString: uuidString) {
+                let descriptor = FetchDescriptor<WorkoutSession>(
+                    predicate: #Predicate { $0.id == uuid }
+                )
+                if let stub = try? modelContext.fetch(descriptor).first {
+                    modelContext.delete(stub)
+                }
+            }
+        }
+        workout.isCompleted = false
+        workout.completedByStravaActivityId = nil
+    }
+
+    /// Re-runs planned vs actual matching against all existing WorkoutSessions.
+    /// Useful when plans were added after activities were already synced.
+    func rematchAllPlannedWorkouts(modelContext: ModelContext) {
+        let threshold = max(0.01, UserDefaults.standard.double(forKey: "planCompletionThreshold") == 0
+            ? 0.05
+            : UserDefaults.standard.double(forKey: "planCompletionThreshold") / 100.0)
+
+        let planDescriptor = FetchDescriptor<PlannedWorkout>(
+            predicate: #Predicate { $0.isCompleted == false }
+        )
+        let plans = (try? modelContext.fetch(planDescriptor)) ?? []
+        guard !plans.isEmpty else { return }
+
+        let sessions = (try? modelContext.fetch(FetchDescriptor<WorkoutSession>())) ?? []
+        let calendar = Calendar.current
+
+        for plan in plans {
+            let dayStart = calendar.startOfDay(for: plan.date)
+            let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+
+            let candidates = sessions.filter {
+                $0.type == plan.workoutType && $0.date >= dayStart && $0.date < dayEnd
+            }
+
+            for session in candidates {
+                var matched = false
+
+                let importedMiles: Double
+                switch session.type {
+                case .running:       importedMiles = session.runningWorkout?.distanceMiles ?? 0
+                case .crossTraining: importedMiles = session.crossTrainingWorkout?.distanceMiles ?? 0
+                case .strength:      importedMiles = 0
+                }
+
+                if plan.plannedDistanceMiles > 0 && importedMiles > 0 {
+                    let delta = abs(importedMiles - plan.plannedDistanceMiles) / plan.plannedDistanceMiles
+                    if delta <= threshold { matched = true }
+                }
+
+                if !matched && plan.plannedDurationSeconds > 0 && session.durationSeconds > 0 {
+                    let delta = abs(Double(session.durationSeconds) - Double(plan.plannedDurationSeconds))
+                        / Double(plan.plannedDurationSeconds)
+                    if delta <= threshold { matched = true }
+                }
+
+                if matched {
+                    plan.isCompleted = true
+                    plan.completedByStravaActivityId = session.stravaActivityId ?? "manual_\(session.id.uuidString)"
+                    break
+                }
+            }
+        }
     }
 
     // MARK: - Private

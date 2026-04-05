@@ -51,6 +51,8 @@ final class WorkoutSession {
     var heartRateAvg: Int?
     var heartRateMax: Int?
     var stravaActivityId: String?     // nil if not synced from Strava
+    /// True when this session was created as a stub by manually marking a planned workout complete.
+    var isManualPlanCompletion: Bool = false
     var createdAt: Date
     var updatedAt: Date
 
