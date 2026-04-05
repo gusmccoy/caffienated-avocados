@@ -64,6 +64,13 @@ struct PlanView: View {
                         Label("Add Race", systemImage: "flag.checkered")
                     }
                 }
+                ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        vm.rematchAllPlannedWorkouts(modelContext: modelContext)
+                    } label: {
+                        Label("Re-match Activities", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                }
             }
             .sheet(isPresented: $vm.isShowingAddSheet) {
                 AddPlannedWorkoutView(vm: vm, calendarService: calendarService)
@@ -477,18 +484,48 @@ private struct DaySection: View {
                             }
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                            Button {
-                                vm.openEditSheet(for: workout)
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
+                            if !workout.isCompleted {
+                                Button {
+                                    vm.markPlanComplete(workout, modelContext: modelContext)
+                                } label: {
+                                    Label("Mark Done", systemImage: "checkmark.circle.fill")
+                                }
+                                .tint(.green)
+                            } else if workout.completedByStravaActivityId?.hasPrefix("manual_") == true {
+                                Button {
+                                    vm.unmarkPlanComplete(workout, modelContext: modelContext)
+                                } label: {
+                                    Label("Unmark", systemImage: "xmark.circle")
+                                }
+                                .tint(.orange)
                             }
-                            .tint(.orange)
+                            if !workout.isCompleted {
+                                Button {
+                                    vm.openEditSheet(for: workout)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
                         }
                         .contextMenu {
-                            Button {
-                                vm.openEditSheet(for: workout)
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
+                            if !workout.isCompleted {
+                                Button {
+                                    vm.openEditSheet(for: workout)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                Button {
+                                    vm.markPlanComplete(workout, modelContext: modelContext)
+                                } label: {
+                                    Label("Mark as Done", systemImage: "checkmark.circle.fill")
+                                }
+                            } else if workout.completedByStravaActivityId?.hasPrefix("manual_") == true {
+                                Button {
+                                    vm.unmarkPlanComplete(workout, modelContext: modelContext)
+                                } label: {
+                                    Label("Unmark as Done", systemImage: "xmark.circle")
+                                }
                             }
                             Button(role: .destructive) {
                                 deleteWorkout(workout)
@@ -543,7 +580,8 @@ private struct PlannedWorkoutRow: View {
                         .font(.subheadline.weight(.medium))
                         .strikethrough(workout.isCompleted, color: .secondary)
                     if workout.isCompleted {
-                        Text("Completed")
+                        let isManual = workout.completedByStravaActivityId?.hasPrefix("manual_") == true
+                        Text(isManual ? "Done (manual)" : "Completed")
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.green)
                             .padding(.horizontal, 5)
