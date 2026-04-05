@@ -12,6 +12,11 @@
 import Foundation
 import AuthenticationServices
 import Security
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 // MARK: - Strava API Constants
 
@@ -30,6 +35,10 @@ private enum StravaAPI {
 // MARK: - StravaService
 
 final class StravaService {
+
+    // Prevent ARC from deallocating the auth session and its (weak) context provider mid-flow.
+    private var authSession: ASWebAuthenticationSession?
+    private var authAnchorProvider: AnchorProvider?
 
     // MARK: - Authentication
 
@@ -122,6 +131,7 @@ final class StravaService {
 
     // MARK: - OAuth Code Flow
 
+    @MainActor
     private func requestAuthorizationCode(anchor: ASPresentationAnchor) async throws -> String {
         var components = URLComponents(string: StravaAPI.authURL)!
         components.queryItems = [
@@ -136,7 +146,10 @@ final class StravaService {
             let session = ASWebAuthenticationSession(
                 url: components.url!,
                 callbackURLScheme: "mccoy-fitness"
-            ) { callbackURL, error in
+            ) { [weak self] callbackURL, error in
+                self?.authSession = nil
+                self?.authAnchorProvider = nil
+
                 if let error = error {
                     continuation.resume(throwing: error)
                     return
@@ -151,8 +164,13 @@ final class StravaService {
                 }
                 continuation.resume(returning: code)
             }
-            session.presentationContextProvider = AnchorProvider(anchor: anchor)
+
+            // Retain both session and provider — presentationContextProvider is weak,
+            // so without strong references here they'd be deallocated before the flow starts.
+            self.authAnchorProvider = AnchorProvider(anchor: anchor)
+            session.presentationContextProvider = self.authAnchorProvider
             session.prefersEphemeralWebBrowserSession = false
+            self.authSession = session
             session.start()
         }
     }
@@ -268,10 +286,26 @@ enum StravaError: LocalizedError {
 
 // MARK: - ASWebAuthenticationPresentationContextProviding
 
-private class AnchorProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+class AnchorProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
     let anchor: ASPresentationAnchor
     init(anchor: ASPresentationAnchor) { self.anchor = anchor }
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor { anchor }
+}
+
+// MARK: - ASPresentationAnchor Convenience
+
+extension ASPresentationAnchor {
+    /// Returns the app's current key window, suitable as a presentation anchor.
+    static var current: ASPresentationAnchor? {
+#if os(macOS)
+        NSApplication.shared.keyWindow
+#else
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })?
+            .windows.first(where: { $0.isKeyWindow })
+#endif
+    }
 }
 
 // MARK: - Secrets Loader
@@ -285,8 +319,6 @@ private enum SecretsLoader {
             let dict   = NSDictionary(contentsOf: url),
             let value  = dict[key] as? String
         else {
-            // During development, fall back to empty strings so the app compiles.
-            // In CI / production, ensure Secrets.plist is injected via your build pipeline.
             assertionFailure("Missing \(key) in Secrets.plist")
             return ""
         }
