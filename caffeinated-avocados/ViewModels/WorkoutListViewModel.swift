@@ -28,13 +28,12 @@ final class WorkoutListViewModel {
         case thisYear   = "This Year"
 
         var startDate: Date? {
-            let calendar = Calendar.current
             let now = Date.now
             switch self {
             case .allTime:   return nil
-            case .thisWeek:  return calendar.dateInterval(of: .weekOfYear, for: now)?.start
-            case .thisMonth: return calendar.dateInterval(of: .month, for: now)?.start
-            case .thisYear:  return calendar.dateInterval(of: .year, for: now)?.start
+            case .thisWeek:  return Calendar.mondayFirst.dateInterval(of: .weekOfYear, for: now)?.start
+            case .thisMonth: return Calendar.current.dateInterval(of: .month, for: now)?.start
+            case .thisYear:  return Calendar.current.dateInterval(of: .year, for: now)?.start
             }
         }
     }
@@ -143,7 +142,7 @@ final class WorkoutListViewModel {
     }
 
     func weeklySummary(from sessions: [WorkoutSession]) -> WeeklySummary {
-        let calendar = Calendar.current
+        let calendar = Calendar.mondayFirst
         let weekStart = calendar.dateInterval(of: .weekOfYear, for: .now)?.start ?? .now
         let thisWeek = sessions.filter { $0.date >= weekStart }
 
@@ -162,7 +161,7 @@ final class WorkoutListViewModel {
 
     /// Compares the current week (up to now) against the same elapsed window in the previous week.
     func weekOverWeekDelta(from sessions: [WorkoutSession]) -> WeekOverWeekDelta {
-        let calendar = Calendar.current
+        let calendar = Calendar.mondayFirst
         let now = Date.now
         let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
 

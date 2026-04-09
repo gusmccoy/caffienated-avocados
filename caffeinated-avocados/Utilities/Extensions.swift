@@ -15,6 +15,17 @@ extension Bundle {
     }
 }
 
+// MARK: - Calendar
+
+extension Calendar {
+    /// ISO 8601 calendar — week always starts on Monday, regardless of device locale.
+    static let mondayFirst: Calendar = {
+        var cal = Calendar(identifier: .iso8601)
+        cal.locale = .current
+        return cal
+    }()
+}
+
 // MARK: - Date
 
 extension Date {
