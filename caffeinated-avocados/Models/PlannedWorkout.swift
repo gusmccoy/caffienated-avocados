@@ -129,9 +129,21 @@ final class PlannedWorkout {
     var crossTrainingActivityType: CrossTrainingActivityType = CrossTrainingActivityType.other
     /// Run category (Base Mileage / Recovery / Workout / Long Run); ignored for non-running types.
     var runCategory: RunCategory = RunCategory.none
-    /// Structured run segments (warm-up, tempo, repeats, etc.); ignored for non-running types.
-    var runSegments: [PlannedRunSegment] = []
+    /// JSON-encoded [PlannedRunSegment]. Access via the `runSegments` computed property.
+    /// Stored as Data to avoid SwiftData limitations with nested Codable arrays.
+    var runSegmentsData: Data = Data()
     var notes: String
+
+    /// Decoded run segments. Encodes/decodes transparently through `runSegmentsData`.
+    var runSegments: [PlannedRunSegment] {
+        get {
+            guard !runSegmentsData.isEmpty else { return [] }
+            return (try? JSONDecoder().decode([PlannedRunSegment].self, from: runSegmentsData)) ?? []
+        }
+        set {
+            runSegmentsData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
@@ -149,7 +161,7 @@ final class PlannedWorkout {
         plannedDurationSeconds: Int = 0,
         crossTrainingActivityType: CrossTrainingActivityType = .other,
         runCategory: RunCategory = .none,
-        runSegments: [PlannedRunSegment] = [],
+        runSegments: [PlannedRunSegment] = [],   // encoded into runSegmentsData
         notes: String = "",
         intensityLevel: IntensityLevel = .moderate,
         calendarEventIdentifier: String? = nil,
@@ -164,7 +176,7 @@ final class PlannedWorkout {
         self.plannedDurationSeconds = plannedDurationSeconds
         self.crossTrainingActivityType = crossTrainingActivityType
         self.runCategory = runCategory
-        self.runSegments = runSegments
+        self.runSegmentsData = (try? JSONEncoder().encode(runSegments)) ?? Data()
         self.notes = notes
         self.intensityLevel = intensityLevel
         self.calendarEventIdentifier = calendarEventIdentifier

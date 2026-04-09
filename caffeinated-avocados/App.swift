@@ -26,7 +26,21 @@ struct McCoyFitnessApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Schema migration failure — wipe the local store and start fresh.
+            // This happens when new model properties can't be automatically migrated.
+            // User data is lost, but the app no longer crashes on update.
+            print("⚠️ SwiftData migration failed (\(error)). Wiping store and recreating.")
+            let storeBase = URL.applicationSupportDirectory
+            let extensions = ["store", "store-shm", "store-wal"]
+            for ext in extensions {
+                let url = storeBase.appending(path: "default.\(ext)")
+                try? FileManager.default.removeItem(at: url)
+            }
+            do {
+                return try ModelContainer(for: schema, configurations: [config])
+            } catch {
+                fatalError("Could not create ModelContainer even after store wipe: \(error)")
+            }
         }
     }()
 
