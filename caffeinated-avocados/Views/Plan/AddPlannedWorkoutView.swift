@@ -22,6 +22,16 @@ struct AddPlannedWorkoutView: View {
                     .labelsHidden()
                 }
 
+                if vm.formType == .crossTraining {
+                    Section("Activity Type") {
+                        Picker("Activity", selection: $vm.formCrossTrainingActivityType) {
+                            ForEach(CrossTrainingActivityType.allCases, id: \.self) { type in
+                                Label(type.rawValue, systemImage: type.systemImage).tag(type)
+                            }
+                        }
+                    }
+                }
+
                 Section("Details") {
                     TextField("Title (optional)", text: $vm.formTitle)
                     Picker("Intensity", selection: $vm.formIntensity) {
@@ -89,6 +99,14 @@ struct AddPlannedWorkoutView: View {
         vm.sheetTargetDate.formatted(date: .complete, time: .omitted)
     }
 
+    /// Default title when the user leaves the title field blank.
+    private var defaultTitle: String {
+        if vm.formType == .crossTraining {
+            return vm.formCrossTrainingActivityType.rawValue
+        }
+        return vm.formType.rawValue
+    }
+
     private func save() {
         if let existing = vm.editingWorkout {
             update(existing)
@@ -102,9 +120,10 @@ struct AddPlannedWorkoutView: View {
         let workout = PlannedWorkout(
             date: vm.sheetTargetDate,
             workoutType: vm.formType,
-            title: vm.formTitle.isEmpty ? vm.formType.rawValue : vm.formTitle,
+            title: vm.formTitle.isEmpty ? defaultTitle : vm.formTitle,
             plannedDistanceMiles: vm.formShowsDistance ? vm.formDistanceMiles : 0,
             plannedDurationSeconds: vm.formDurationSeconds,
+            crossTrainingActivityType: vm.formCrossTrainingActivityType,
             notes: vm.formNotes,
             intensityLevel: vm.formIntensity
         )
@@ -125,9 +144,10 @@ struct AddPlannedWorkoutView: View {
     private func update(_ workout: PlannedWorkout) {
         let oldEventId = workout.calendarEventIdentifier
         workout.workoutType = vm.formType
-        workout.title = vm.formTitle.isEmpty ? vm.formType.rawValue : vm.formTitle
+        workout.title = vm.formTitle.isEmpty ? defaultTitle : vm.formTitle
         workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formDistanceMiles : 0
         workout.plannedDurationSeconds = vm.formDurationSeconds
+        workout.crossTrainingActivityType = vm.formCrossTrainingActivityType
         workout.notes = vm.formNotes
         workout.intensityLevel = vm.formIntensity
 

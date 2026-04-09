@@ -581,7 +581,7 @@ private struct PlannedWorkoutRow: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack(alignment: .bottomTrailing) {
-                Image(systemName: workout.workoutType.systemImage)
+                Image(systemName: rowIcon)
                     .foregroundStyle(.white)
                     .frame(width: 32, height: 32)
                     .background(typeColor.opacity(workout.isCompleted ? 0.5 : 1), in: RoundedRectangle(cornerRadius: 8))
@@ -623,6 +623,12 @@ private struct PlannedWorkoutRow: View {
                             .foregroundStyle(Color.intensityColor(workout.intensityLevel))
                     }
 
+                    if workout.workoutType == .crossTraining {
+                        Text(workout.crossTrainingActivityType.rawValue)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
                     if workout.plannedDistanceMiles > 0 {
                         Text(distanceText)
                             .font(.caption)
@@ -645,6 +651,13 @@ private struct PlannedWorkoutRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var rowIcon: String {
+        if workout.workoutType == .crossTraining {
+            return workout.crossTrainingActivityType.systemImage
+        }
+        return workout.workoutType.systemImage
     }
 
     private var typeColor: Color {

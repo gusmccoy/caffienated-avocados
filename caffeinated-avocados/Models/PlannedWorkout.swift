@@ -15,6 +15,8 @@ final class PlannedWorkout {
     var plannedDistanceMiles: Double
     /// Optional planned duration in seconds (0 = not set).
     var plannedDurationSeconds: Int = 0
+    /// Activity type for cross-training workouts; ignored for other types.
+    var crossTrainingActivityType: CrossTrainingActivityType = CrossTrainingActivityType.other
     var notes: String
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
@@ -31,6 +33,7 @@ final class PlannedWorkout {
         title: String = "",
         plannedDistanceMiles: Double = 0,
         plannedDurationSeconds: Int = 0,
+        crossTrainingActivityType: CrossTrainingActivityType = .other,
         notes: String = "",
         intensityLevel: IntensityLevel = .moderate,
         calendarEventIdentifier: String? = nil,
@@ -43,6 +46,7 @@ final class PlannedWorkout {
         self.title = title
         self.plannedDistanceMiles = plannedDistanceMiles
         self.plannedDurationSeconds = plannedDurationSeconds
+        self.crossTrainingActivityType = crossTrainingActivityType
         self.notes = notes
         self.intensityLevel = intensityLevel
         self.calendarEventIdentifier = calendarEventIdentifier

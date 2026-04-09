@@ -80,6 +80,7 @@ final class PlanViewModel {
     var formSeconds: Int = 0
     var formNotes: String = ""
     var formIntensity: IntensityLevel = .moderate
+    var formCrossTrainingActivityType: CrossTrainingActivityType = .other
     var calendarAuthorizationDenied: Bool = false
 
     var formDurationSeconds: Int { formHours * 3600 + formMinutes * 60 + formSeconds }
@@ -101,6 +102,7 @@ final class PlanViewModel {
         formSeconds = 0
         formNotes = ""
         formIntensity = .moderate
+        formCrossTrainingActivityType = .other
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -117,6 +119,7 @@ final class PlanViewModel {
         formSeconds = d % 60
         formNotes = workout.notes
         formIntensity = workout.intensityLevel
+        formCrossTrainingActivityType = workout.crossTrainingActivityType
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -131,6 +134,7 @@ final class PlanViewModel {
         formSeconds = 0
         formNotes = ""
         formIntensity = .moderate
+        formCrossTrainingActivityType = .other
         calendarAuthorizationDenied = false
     }
 
@@ -160,7 +164,7 @@ final class PlanViewModel {
             modelContext.insert(run)
         case .crossTraining:
             let ct = CrossTrainingWorkout(
-                activityType: .other,
+                activityType: workout.crossTrainingActivityType,
                 distanceMiles: workout.plannedDistanceMiles > 0 ? workout.plannedDistanceMiles : nil
             )
             ct.session = session
