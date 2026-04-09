@@ -22,7 +22,11 @@ struct McCoyFitnessApp: App {
             PlannedWorkout.self,
             Race.self,
         ])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let config = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .private("iCloud.io.mccoy.caffeinated-avocados")
+        )
         do {
             return try ModelContainer(for: schema, configurations: [config])
         } catch {
