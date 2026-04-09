@@ -125,15 +125,29 @@ final class PlannedWorkout {
     var plannedDistanceMiles: Double
     /// Optional planned duration in seconds (0 = not set).
     var plannedDurationSeconds: Int = 0
+    // MARK: - Enum-backed String storage
+    // Stored as plain String so Core Data can apply the inline default during lightweight
+    // migration (avoids "Could not cast Optional<Any> to EnumType" on existing records).
+
+    /// Raw storage for crossTrainingActivityType — do not access directly.
+    var crossTrainingActivityTypeRaw: String = CrossTrainingActivityType.other.rawValue
     /// Activity type for cross-training workouts; ignored for other types.
-    var crossTrainingActivityType: CrossTrainingActivityType = CrossTrainingActivityType.other
+    var crossTrainingActivityType: CrossTrainingActivityType {
+        get { CrossTrainingActivityType(rawValue: crossTrainingActivityTypeRaw) ?? .other }
+        set { crossTrainingActivityTypeRaw = newValue.rawValue }
+    }
+
+    /// Raw storage for runCategory — do not access directly.
+    var runCategoryRaw: String = RunCategory.none.rawValue
     /// Run category (Base Mileage / Recovery / Workout / Long Run); ignored for non-running types.
-    var runCategory: RunCategory = RunCategory.none
+    var runCategory: RunCategory {
+        get { RunCategory(rawValue: runCategoryRaw) ?? .none }
+        set { runCategoryRaw = newValue.rawValue }
+    }
+
     /// JSON-encoded [PlannedRunSegment]. Access via the `runSegments` computed property.
     /// Stored as Data to avoid SwiftData limitations with nested Codable arrays.
     var runSegmentsData: Data = Data()
-    var notes: String
-
     /// Decoded run segments. Encodes/decodes transparently through `runSegmentsData`.
     var runSegments: [PlannedRunSegment] {
         get {
@@ -144,6 +158,7 @@ final class PlannedWorkout {
             runSegmentsData = (try? JSONEncoder().encode(newValue)) ?? Data()
         }
     }
+
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
@@ -174,8 +189,8 @@ final class PlannedWorkout {
         self.title = title
         self.plannedDistanceMiles = plannedDistanceMiles
         self.plannedDurationSeconds = plannedDurationSeconds
-        self.crossTrainingActivityType = crossTrainingActivityType
-        self.runCategory = runCategory
+        self.crossTrainingActivityTypeRaw = crossTrainingActivityType.rawValue
+        self.runCategoryRaw = runCategory.rawValue
         self.runSegmentsData = (try? JSONEncoder().encode(runSegments)) ?? Data()
         self.notes = notes
         self.intensityLevel = intensityLevel
