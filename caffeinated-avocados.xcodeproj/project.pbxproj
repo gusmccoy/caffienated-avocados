@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AD2C2A4D2F7B0855002E1CAD /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = AD2C2A4C2F7B0855002E1CAD /* Secrets.plist */; };
+		ADEC7AAB2F82E73D00C950BF /* Secrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = ADEC7AAA2F82E73D00C950BF /* Secrets.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,7 +31,7 @@
 		AD2C28232F79C8CE002E1CAD /* caffeinated-avocados.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "caffeinated-avocados.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD2C28342F79C8CF002E1CAD /* caffeinated-avocadosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "caffeinated-avocadosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD2C283E2F79C8CF002E1CAD /* caffeinated-avocadosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "caffeinated-avocadosUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AD2C2A4C2F7B0855002E1CAD /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
+		ADEC7AAA2F82E73D00C950BF /* Secrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Secrets.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -94,7 +94,7 @@
 		AD2C281A2F79C8CE002E1CAD = {
 			isa = PBXGroup;
 			children = (
-				AD2C2A4C2F7B0855002E1CAD /* Secrets.plist */,
+				ADEC7AAA2F82E73D00C950BF /* Secrets.plist */,
 				AD2C28252F79C8CE002E1CAD /* caffeinated-avocados */,
 				AD2C28372F79C8CF002E1CAD /* caffeinated-avocadosTests */,
 				AD2C28412F79C8CF002E1CAD /* caffeinated-avocadosUITests */,
@@ -232,7 +232,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AD2C2A4D2F7B0855002E1CAD /* Secrets.plist in Resources */,
+				ADEC7AAB2F82E73D00C950BF /* Secrets.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
