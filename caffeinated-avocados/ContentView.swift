@@ -16,19 +16,9 @@ struct ContentView: View {
                     Label("Dashboard", systemImage: "chart.bar.fill")
                 }
 
-            RunningListView()
+            ActivitiesView()
                 .tabItem {
-                    Label("Running", systemImage: "figure.run")
-                }
-
-            StrengthListView()
-                .tabItem {
-                    Label("Strength", systemImage: "dumbbell.fill")
-                }
-
-            CrossTrainingListView()
-                .tabItem {
-                    Label("Cross Train", systemImage: "figure.cross.training")
+                    Label("Activities", systemImage: "figure.run")
                 }
         }
         .tint(.orange) // Brand accent color
