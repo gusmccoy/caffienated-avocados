@@ -81,6 +81,8 @@ final class PlanViewModel {
     var formNotes: String = ""
     var formIntensity: IntensityLevel = .moderate
     var formCrossTrainingActivityType: CrossTrainingActivityType = .other
+    var formRunCategory: RunCategory = .none
+    var formRunSegments: [PlannedRunSegment] = []
     var calendarAuthorizationDenied: Bool = false
 
     var formDurationSeconds: Int { formHours * 3600 + formMinutes * 60 + formSeconds }
@@ -103,6 +105,8 @@ final class PlanViewModel {
         formNotes = ""
         formIntensity = .moderate
         formCrossTrainingActivityType = .other
+        formRunCategory = .none
+        formRunSegments = []
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -120,6 +124,8 @@ final class PlanViewModel {
         formNotes = workout.notes
         formIntensity = workout.intensityLevel
         formCrossTrainingActivityType = workout.crossTrainingActivityType
+        formRunCategory = workout.runCategory
+        formRunSegments = workout.runSegments
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -135,6 +141,8 @@ final class PlanViewModel {
         formNotes = ""
         formIntensity = .moderate
         formCrossTrainingActivityType = .other
+        formRunCategory = .none
+        formRunSegments = []
         calendarAuthorizationDenied = false
     }
 

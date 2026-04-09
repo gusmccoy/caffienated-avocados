@@ -629,6 +629,15 @@ private struct PlannedWorkoutRow: View {
                             .foregroundStyle(.secondary)
                     }
 
+                    if workout.workoutType == .running && workout.runCategory != .none {
+                        Text(workout.runCategory.rawValue)
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.12), in: Capsule())
+                            .foregroundStyle(Color.green)
+                    }
+
                     if workout.plannedDistanceMiles > 0 {
                         Text(distanceText)
                             .font(.caption)
@@ -640,6 +649,29 @@ private struct PlannedWorkoutRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                }
+
+                // Run segments summary
+                if workout.workoutType == .running && !workout.runSegments.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(workout.runSegments) { seg in
+                            HStack(spacing: 5) {
+                                Image(systemName: seg.segmentType.systemImage)
+                                    .font(.system(size: 9))
+                                    .foregroundStyle(.secondary)
+                                Text(seg.segmentType.rawValue)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                let summary = seg.summaryLabel
+                                if !summary.isEmpty {
+                                    Text("· \(summary)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.top, 2)
                 }
             }
 

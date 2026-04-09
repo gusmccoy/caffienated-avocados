@@ -9,9 +9,13 @@ struct AddPlannedWorkoutView: View {
     let calendarService: CalendarService
     @Environment(\.modelContext) private var modelContext
 
+    @State private var addingSegment = false
+    @State private var editingSegmentIndex: Int? = nil
+
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: Workout Type
                 Section("Workout Type") {
                     Picker("Type", selection: $vm.formType) {
                         ForEach(WorkoutType.allCases, id: \.self) { type in
@@ -22,6 +26,7 @@ struct AddPlannedWorkoutView: View {
                     .labelsHidden()
                 }
 
+                // MARK: Cross-Training Activity Type
                 if vm.formType == .crossTraining {
                     Section("Activity Type") {
                         Picker("Activity", selection: $vm.formCrossTrainingActivityType) {
@@ -32,6 +37,50 @@ struct AddPlannedWorkoutView: View {
                     }
                 }
 
+                // MARK: Run Category + Segments
+                if vm.formType == .running {
+                    Section("Run Type") {
+                        Picker("Category", selection: $vm.formRunCategory) {
+                            ForEach(RunCategory.allCases, id: \.self) { cat in
+                                Text(cat == .none ? "Unspecified" : cat.rawValue).tag(cat)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+
+                    Section {
+                        ForEach(vm.formRunSegments.indices, id: \.self) { i in
+                            Button {
+                                editingSegmentIndex = i
+                            } label: {
+                                SegmentRow(segment: vm.formRunSegments[i])
+                            }
+                            .foregroundStyle(.primary)
+                        }
+                        .onDelete { vm.formRunSegments.remove(atOffsets: $0) }
+                        .onMove { vm.formRunSegments.move(fromOffsets: $0, toOffset: $1) }
+
+                        Button {
+                            addingSegment = true
+                        } label: {
+                            Label("Add Segment", systemImage: "plus.circle")
+                        }
+                    } header: {
+                        HStack {
+                            Text("Segments")
+                            Spacer()
+                            if !vm.formRunSegments.isEmpty {
+                                EditButton().font(.caption)
+                            }
+                        }
+                    } footer: {
+                        if vm.formRunSegments.isEmpty {
+                            Text("Break this run into structured parts — warm-up, tempo, repeats, cooldown, etc.")
+                        }
+                    }
+                }
+
+                // MARK: Details
                 Section("Details") {
                     TextField("Title (optional)", text: $vm.formTitle)
                     Picker("Intensity", selection: $vm.formIntensity) {
@@ -42,8 +91,9 @@ struct AddPlannedWorkoutView: View {
                     .pickerStyle(.segmented)
                 }
 
+                // MARK: Distance
                 if vm.formShowsDistance {
-                    Section("Distance (optional)") {
+                    Section("Total Distance (optional)") {
                         HStack {
                             Text("Miles")
                             Spacer()
@@ -54,7 +104,8 @@ struct AddPlannedWorkoutView: View {
                     }
                 }
 
-                Section("Duration (optional)") {
+                // MARK: Duration
+                Section("Total Duration (optional)") {
                     HStack {
                         DurationPicker(label: "h", value: $vm.formHours, range: 0...23)
                         DurationPicker(label: "m", value: $vm.formMinutes, range: 0...59)
@@ -62,11 +113,13 @@ struct AddPlannedWorkoutView: View {
                     }
                 }
 
+                // MARK: Notes
                 Section("Notes") {
                     TextEditor(text: $vm.formNotes)
                         .frame(minHeight: 80)
                 }
 
+                // MARK: Calendar Warning
                 if vm.calendarAuthorizationDenied {
                     Section {
                         Label {
@@ -92,17 +145,35 @@ struct AddPlannedWorkoutView: View {
                     Button(vm.isEditing ? "Update" : "Save") { save() }
                 }
             }
+            // Add new segment
+            .sheet(isPresented: $addingSegment) {
+                AddRunSegmentView { newSegment in
+                    vm.formRunSegments.append(newSegment)
+                }
+            }
+            // Edit existing segment
+            .sheet(item: $editingSegmentIndex) { idx in
+                AddRunSegmentView(
+                    existingSegment: vm.formRunSegments[idx],
+                    onSave: { vm.formRunSegments[idx] = $0 },
+                    onDelete: { vm.formRunSegments.remove(at: idx) }
+                )
+            }
         }
     }
+
+    // MARK: - Helpers
 
     private var dateTitle: String {
         vm.sheetTargetDate.formatted(date: .complete, time: .omitted)
     }
 
-    /// Default title when the user leaves the title field blank.
     private var defaultTitle: String {
         if vm.formType == .crossTraining {
             return vm.formCrossTrainingActivityType.rawValue
+        }
+        if vm.formType == .running && vm.formRunCategory != .none {
+            return vm.formRunCategory.rawValue
         }
         return vm.formType.rawValue
     }
@@ -124,6 +195,8 @@ struct AddPlannedWorkoutView: View {
             plannedDistanceMiles: vm.formShowsDistance ? vm.formDistanceMiles : 0,
             plannedDurationSeconds: vm.formDurationSeconds,
             crossTrainingActivityType: vm.formCrossTrainingActivityType,
+            runCategory: vm.formRunCategory,
+            runSegments: vm.formRunSegments,
             notes: vm.formNotes,
             intensityLevel: vm.formIntensity
         )
@@ -148,6 +221,8 @@ struct AddPlannedWorkoutView: View {
         workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formDistanceMiles : 0
         workout.plannedDurationSeconds = vm.formDurationSeconds
         workout.crossTrainingActivityType = vm.formCrossTrainingActivityType
+        workout.runCategory = vm.formRunCategory
+        workout.runSegments = vm.formRunSegments
         workout.notes = vm.formNotes
         workout.intensityLevel = vm.formIntensity
 
@@ -163,4 +238,42 @@ struct AddPlannedWorkoutView: View {
             }
         }
     }
+}
+
+// MARK: - Segment Row
+
+private struct SegmentRow: View {
+    let segment: PlannedRunSegment
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: segment.segmentType.systemImage)
+                .font(.caption)
+                .foregroundStyle(.white)
+                .frame(width: 26, height: 26)
+                .background(Color.green.opacity(0.8), in: RoundedRectangle(cornerRadius: 6))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(segment.segmentType.rawValue)
+                    .font(.subheadline.weight(.medium))
+                let summary = segment.summaryLabel
+                if !summary.isEmpty {
+                    Text(summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+    }
+}
+
+// MARK: - Int: Identifiable for sheet(item:)
+extension Int: @retroactive Identifiable {
+    public var id: Int { self }
 }
