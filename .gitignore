@@ -1,17 +1,31 @@
-# Xcode
+# ── Xcode ──────────────────────────────────────────────────────────────────
 *.xcuserstate
+xcuserdata/
 *.xcworkspace/xcuserdata/
 *.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+*.xcbkptlist
 DerivedData/
+build/
 .build/
 *.ipa
+*.xcarchive
 *.dSYM.zip
 *.dSYM
 
-# Secrets — NEVER commit these
+# ── Secrets — NEVER commit real credentials ─────────────────────────────────
+# Copy Secrets.plist.template → Secrets.plist and fill in your values.
 Secrets.plist
 
-# macOS
+# ── Claude Code ──────────────────────────────────────────────────────────────
+.claude/worktrees/
+
+# ── macOS ────────────────────────────────────────────────────────────────────
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
+
+# ── Misc editors ─────────────────────────────────────────────────────────────
+*.swp
+*.swo
+.vscode/
