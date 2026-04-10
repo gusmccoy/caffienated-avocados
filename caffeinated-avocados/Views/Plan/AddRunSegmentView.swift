@@ -42,181 +42,196 @@ struct AddRunSegmentView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // MARK: Type
-                Section("Segment Type") {
-                    Picker("Type", selection: $segmentType) {
-                        ForEach(RunSegmentType.allCases, id: \.self) { type in
-                            Label(type.rawValue, systemImage: type.systemImage).tag(type)
-                        }
+            segmentForm
+                #if os(macOS)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity, alignment: .center)
+                #endif
+                .navigationTitle(existingSegment == nil ? "Add Segment" : "Edit Segment")
+                #if !os(macOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") { save() }
                     }
                 }
+                .onAppear { populate() }
+        }
+    }
 
-                // MARK: Pace
-                Section("Pace") {
-                    Picker("Pace By", selection: $paceReference) {
-                        ForEach(PaceReference.allCases, id: \.self) { ref in
-                            Text(ref.rawValue).tag(ref)
-                        }
+    private var segmentForm: some View {
+        Form {
+            // MARK: Type
+            Section("Segment Type") {
+                Picker("Type", selection: $segmentType) {
+                    ForEach(RunSegmentType.allCases, id: \.self) { type in
+                        Label(type.rawValue, systemImage: type.systemImage).tag(type)
                     }
-                    .pickerStyle(.menu)
+                }
+            }
 
-                    if paceReference == .exact {
+            // MARK: Pace
+            Section("Pace") {
+                Picker("Pace By", selection: $paceReference) {
+                    ForEach(PaceReference.allCases, id: \.self) { ref in
+                        Text(ref.rawValue).tag(ref)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                if paceReference == .exact {
+                    HStack {
+                        Text("Pace")
+                        Spacer()
+                        Picker("Min", selection: $paceMinutes) {
+                            ForEach(4...15, id: \.self) { Text(String($0)).tag($0) }
+                        }
+                        #if os(macOS)
+                        .pickerStyle(.menu)
+                        #else
+                        .pickerStyle(.wheel)
+                        .frame(width: 60)
+                        .clipped()
+                        #endif
+                        Text(":")
+                        Picker("Sec", selection: $paceSeconds) {
+                            ForEach(Array(stride(from: 0, through: 59, by: 5)), id: \.self) {
+                                Text(String(format: "%02d", $0)).tag($0)
+                            }
+                        }
+                        #if os(macOS)
+                        .pickerStyle(.menu)
+                        #else
+                        .pickerStyle(.wheel)
+                        .frame(width: 60)
+                        .clipped()
+                        #endif
+                        Text("/mi")
+                            .foregroundStyle(.secondary)
+                    }
+                    #if !os(macOS)
+                    .frame(height: 100)
+                    #endif
+                }
+            }
+
+            // MARK: Volume — Ladder
+            if segmentType.isLadder {
+                Section {
+                    ForEach(ladderDistances.indices, id: \.self) { i in
                         HStack {
-                            Text("Pace")
+                            Text("Step \(i + 1)")
                             Spacer()
-                            Picker("Min", selection: $paceMinutes) {
-                                ForEach(4...15, id: \.self) { Text(String($0)).tag($0) }
-                            }
-                            #if os(macOS)
-                            .pickerStyle(.menu)
-                            #else
-                            .pickerStyle(.wheel)
-                            .frame(width: 60)
-                            .clipped()
-                            #endif
-                            Text(":")
-                            Picker("Sec", selection: $paceSeconds) {
-                                ForEach(Array(stride(from: 0, through: 59, by: 5)), id: \.self) {
-                                    Text(String(format: "%02d", $0)).tag($0)
-                                }
-                            }
-                            #if os(macOS)
-                            .pickerStyle(.menu)
-                            #else
-                            .pickerStyle(.wheel)
-                            .frame(width: 60)
-                            .clipped()
-                            #endif
-                            Text("/mi")
+                            Text(PlannedRunSegment.formatDistance(ladderDistances[i]))
                                 .foregroundStyle(.secondary)
                         }
+                    }
+                    .onDelete { ladderDistances.remove(atOffsets: $0) }
+                    .onMove { ladderDistances.move(fromOffsets: $0, toOffset: $1) }
+
+                    HStack {
+                        Text("Add Step")
+                        Spacer()
+                        Picker("", selection: $newLadderMiles) {
+                            ForEach(commonLadderDistances, id: \.self) { d in
+                                Text(PlannedRunSegment.formatDistance(d)).tag(d)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        Button {
+                            ladderDistances.append(newLadderMiles)
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(.green)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    HStack {
+                        Text("Ladder Steps")
+                        Spacer()
                         #if !os(macOS)
-                        .frame(height: 100)
+                        EditButton()
+                            .font(.caption)
                         #endif
                     }
                 }
 
-                // MARK: Volume — Ladder
-                if segmentType.isLadder {
-                    Section {
-                        ForEach(ladderDistances.indices, id: \.self) { i in
-                            HStack {
-                                Text("Step \(i + 1)")
-                                Spacer()
-                                Text(PlannedRunSegment.formatDistance(ladderDistances[i]))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .onDelete { ladderDistances.remove(atOffsets: $0) }
-                        .onMove { ladderDistances.move(fromOffsets: $0, toOffset: $1) }
+                Section("Recovery Between Steps") {
+                    RecoveryPicker(seconds: $recoveryDurationSeconds)
+                }
+            }
 
-                        HStack {
-                            Text("Add Step")
-                            Spacer()
-                            Picker("", selection: $newLadderMiles) {
-                                ForEach(commonLadderDistances, id: \.self) { d in
-                                    Text(PlannedRunSegment.formatDistance(d)).tag(d)
-                                }
+            // MARK: Volume — Intervals
+            else if segmentType.hasIntervals {
+                Section("Intervals") {
+                    Stepper("Repetitions: \(intervalCount)", value: $intervalCount, in: 1...50)
+                    HStack {
+                        Text("Distance per Rep")
+                        Spacer()
+                        Picker("", selection: $distanceMiles) {
+                            Text("—").tag(0.0)
+                            ForEach(commonLadderDistances, id: \.self) { d in
+                                Text(PlannedRunSegment.formatDistance(d)).tag(d)
                             }
-                            .pickerStyle(.menu)
-                            Button {
-                                ladderDistances.append(newLadderMiles)
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundStyle(.green)
-                            }
-                            .buttonStyle(.plain)
                         }
-                    } header: {
-                        HStack {
-                            Text("Ladder Steps")
-                            Spacer()
+                        .pickerStyle(.menu)
+                    }
+                }
+
+                Section("Recovery Between Reps") {
+                    RecoveryPicker(seconds: $recoveryDurationSeconds)
+                }
+            }
+
+            // MARK: Volume — Standard
+            else {
+                Section("Volume (optional)") {
+                    HStack {
+                        Text("Distance (mi)")
+                        Spacer()
+                        TextField("0.00", value: $distanceMiles, format: .number.precision(.fractionLength(2)))
                             #if !os(macOS)
-                            EditButton()
-                                .font(.caption)
+                            .keyboardType(.decimalPad)
                             #endif
-                        }
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
                     }
-
-                    Section("Recovery Between Steps") {
-                        RecoveryPicker(seconds: $recoveryDurationSeconds)
-                    }
-                }
-
-                // MARK: Volume — Intervals
-                else if segmentType.hasIntervals {
-                    Section("Intervals") {
-                        Stepper("Repetitions: \(intervalCount)", value: $intervalCount, in: 1...50)
-                        HStack {
-                            Text("Distance per Rep")
-                            Spacer()
-                            Picker("", selection: $distanceMiles) {
-                                Text("—").tag(0.0)
-                                ForEach(commonLadderDistances, id: \.self) { d in
-                                    Text(PlannedRunSegment.formatDistance(d)).tag(d)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                        }
-                    }
-
-                    Section("Recovery Between Reps") {
-                        RecoveryPicker(seconds: $recoveryDurationSeconds)
-                    }
-                }
-
-                // MARK: Volume — Standard
-                else {
-                    Section("Volume (optional)") {
-                        HStack {
-                            Text("Distance (mi)")
-                            Spacer()
-                            TextField("0.00", value: $distanceMiles, format: .number.precision(.fractionLength(2)))
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                        }
-                        HStack {
-                            Text("Duration (min)")
-                            Spacer()
-                            TextField("0", value: $durationMinutes, format: .number)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 60)
-                        }
-                    }
-                }
-
-                // MARK: Notes
-                Section("Notes") {
-                    TextField("Optional", text: $notes)
-                }
-
-                // MARK: Delete (edit mode only)
-                if onDelete != nil {
-                    Section {
-                        Button("Remove Segment", role: .destructive) {
-                            onDelete?()
-                            dismiss()
-                        }
+                    HStack {
+                        Text("Duration (min)")
+                        Spacer()
+                        TextField("0", value: $durationMinutes, format: .number)
+                            #if !os(macOS)
+                            .keyboardType(.numberPad)
+                            #endif
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 60)
                     }
                 }
             }
-            .navigationTitle(existingSegment == nil ? "Add Segment" : "Edit Segment")
-            #if !os(macOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
+
+            // MARK: Notes
+            Section("Notes") {
+                TextField("Optional", text: $notes)
+            }
+
+            // MARK: Delete (edit mode only)
+            if onDelete != nil {
+                Section {
+                    Button("Remove Segment", role: .destructive) {
+                        onDelete?()
+                        dismiss()
+                    }
                 }
             }
-            .onAppear { populate() }
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
     }
 
     // MARK: - Helpers
