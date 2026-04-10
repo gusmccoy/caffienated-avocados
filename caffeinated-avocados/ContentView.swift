@@ -20,6 +20,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Activities", systemImage: "figure.run")
                 }
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape")
+                }
         }
         .tint(.orange) // Brand accent color
     }

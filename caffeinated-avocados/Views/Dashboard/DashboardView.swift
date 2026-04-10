@@ -8,7 +8,6 @@ struct DashboardView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var sessions: [WorkoutSession]
     @State private var listVM = WorkoutListViewModel()
     @State private var showingAddWorkout = false
-    @State private var showingSettings = false
     @State private var showingLogRunning = false
     @State private var showingLogStrength = false
     @State private var showingLogCrossTraining = false
@@ -50,13 +49,6 @@ struct DashboardView: View {
                             .font(.title2)
                     }
                 }
-                ToolbarItem(placement: .navigation) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                    }
-                }
             }
             .sheet(isPresented: $showingAddWorkout) {
                 AddWorkoutView()
@@ -69,9 +61,6 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $showingLogCrossTraining) {
                 LogCrossTrainingView()
-            }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
             }
         }
     }

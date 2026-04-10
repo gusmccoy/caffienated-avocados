@@ -14,105 +14,109 @@ struct SettingsView: View {
     @State private var stravaVM = StravaViewModel()
     @Query private var connections: [StravaConnection]
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @State private var showingOverrideSummary = false
 
     var body: some View {
         NavigationStack {
-            Form {
-                // Strava
-                Section {
-                    StravaConnectionRow(vm: stravaVM, modelContext: modelContext)
-                } header: {
-                    Text("Strava")
-                } footer: {
-                    Text("Connect Strava to automatically import your activities.")
+            settingsForm
+                #if os(macOS)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity, alignment: .center)
+                #endif
+                .navigationTitle("Settings")
+                .alert("Error", isPresented: .constant(stravaVM.errorMessage != nil)) {
+                    Button("OK") { stravaVM.errorMessage = nil }
+                } message: {
+                    Text(stravaVM.errorMessage ?? "")
                 }
+        }
+    }
 
-                // Sync
-                if stravaVM.isConnected {
-                    Section("Sync") {
-                        Button {
-                            Task { await stravaVM.syncActivities(modelContext: modelContext) }
-                        } label: {
-                            HStack {
-                                Label("Sync Activities Now", systemImage: "arrow.triangle.2.circlepath")
-                                Spacer()
-                                if stravaVM.isLoading {
-                                    ProgressView()
-                                }
+    private var settingsForm: some View {
+        Form {
+            // Strava
+            Section {
+                StravaConnectionRow(vm: stravaVM, modelContext: modelContext)
+            } header: {
+                Text("Strava")
+            } footer: {
+                Text("Connect Strava to automatically import your activities.")
+            }
+
+            // Sync
+            if stravaVM.isConnected {
+                Section("Sync") {
+                    Button {
+                        Task { await stravaVM.syncActivities(modelContext: modelContext) }
+                    } label: {
+                        HStack {
+                            Label("Sync Activities Now", systemImage: "arrow.triangle.2.circlepath")
+                            Spacer()
+                            if stravaVM.isLoading {
+                                ProgressView()
                             }
                         }
-                        .disabled(stravaVM.isLoading)
-
-                        if let lastSync = stravaVM.lastSyncDate {
-                            LabeledContent("Last Synced") {
-                                Text(lastSync.formatted(date: .abbreviated, time: .shortened))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
                     }
+                    .disabled(stravaVM.isLoading)
 
-                    // Override notifications — shown after a sync that replaced manual entries
-                    if !stravaVM.overrideResults.isEmpty {
-                        Section {
-                            ForEach(stravaVM.overrideResults) { result in
-                                OverrideResultRow(result: result, vm: stravaVM, modelContext: modelContext)
-                            }
-                        } header: {
-                            Label("Overridden by Strava", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                        } footer: {
-                            Text("These manual entries were replaced because a matching Strava activity was found on the same day. Tap Undo to restore them.")
+                    if let lastSync = stravaVM.lastSyncDate {
+                        LabeledContent("Last Synced") {
+                            Text(lastSync.formatted(date: .abbreviated, time: .shortened))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                // Reminders
-                Section {
-                    PlanningReminderRow()
-                } header: {
-                    Text("Reminders")
-                } footer: {
-                    Text("Sends a notification every Sunday reminding you to plan the following week.")
-                }
-
-                // Preferences
-                Section("Display") {
-                    NavigationLink("Units & Measurements") {
-                        UnitsPreferenceView()
+                // Override notifications — shown after a sync that replaced manual entries
+                if !stravaVM.overrideResults.isEmpty {
+                    Section {
+                        ForEach(stravaVM.overrideResults) { result in
+                            OverrideResultRow(result: result, vm: stravaVM, modelContext: modelContext)
+                        }
+                    } header: {
+                        Label("Overridden by Strava", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    } footer: {
+                        Text("These manual entries were replaced because a matching Strava activity was found on the same day. Tap Undo to restore them.")
                     }
-                }
-
-                // Data
-                Section("Data") {
-                    NavigationLink("Export Workouts") {
-                        ExportView()
-                    }
-                }
-
-                // About
-                Section("About") {
-                    LabeledContent("Version") {
-                        Text(Bundle.main.appVersion)
-                            .foregroundStyle(.secondary)
-                    }
-                    Link("Strava API Docs", destination: URL(string: "https://developers.strava.com")!)
-                    Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
                 }
             }
-            .navigationTitle("Settings")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+
+            // Reminders
+            Section {
+                PlanningReminderRow()
+            } header: {
+                Text("Reminders")
+            } footer: {
+                Text("Sends a notification every Sunday reminding you to plan the following week.")
+            }
+
+            // Preferences
+            Section("Display") {
+                NavigationLink("Units & Measurements") {
+                    UnitsPreferenceView()
                 }
             }
-            .alert("Error", isPresented: .constant(stravaVM.errorMessage != nil)) {
-                Button("OK") { stravaVM.errorMessage = nil }
-            } message: {
-                Text(stravaVM.errorMessage ?? "")
+
+            // Data
+            Section("Data") {
+                NavigationLink("Export Workouts") {
+                    ExportView()
+                }
+            }
+
+            // About
+            Section("About") {
+                LabeledContent("Version") {
+                    Text(Bundle.main.appVersion)
+                        .foregroundStyle(.secondary)
+                }
+                Link("Strava API Docs", destination: URL(string: "https://developers.strava.com")!)
+                Link("Privacy Policy", destination: URL(string: "https://example.com/privacy")!)
             }
         }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
     }
 }
 
@@ -226,6 +230,15 @@ struct UnitsPreferenceView: View {
     private var paceSeconds: Int { defaultPaceSecondsPerMile % 60 }
 
     var body: some View {
+        unitsForm
+            #if os(macOS)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity, alignment: .center)
+            #endif
+            .navigationTitle("Units & Matching")
+    }
+
+    private var unitsForm: some View {
         Form {
             Section("Distance") {
                 Picker("Unit", selection: $distanceUnit) {
@@ -290,7 +303,9 @@ struct UnitsPreferenceView: View {
                 Text("Used to estimate distance for planned runs that have a duration but no set distance. Shown as ~X mi in the plan.")
             }
         }
-        .navigationTitle("Units & Matching")
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
     }
 }
 
