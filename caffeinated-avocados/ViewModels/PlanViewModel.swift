@@ -93,6 +93,31 @@ final class PlanViewModel {
         formType == .running || formType == .crossTraining
     }
 
+    /// True when the user has typed a distance manually, overriding the segment calculation.
+    var formIsDistanceManuallySet: Bool = false
+
+    /// Distance calculated from the current run segments (0 when none have distances set).
+    var formCalculatedDistanceMiles: Double {
+        guard formType == .running else { return 0 }
+        return formRunSegments.reduce(0.0) { total, seg in
+            switch seg.segmentType {
+            case .repeats, .fartlek:
+                return total + seg.distanceMiles * Double(max(1, seg.intervalCount))
+            case .ladder:
+                return total + seg.ladderDistances.reduce(0.0, +)
+            default:
+                return total + seg.distanceMiles
+            }
+        }
+    }
+
+    /// The distance that will actually be saved — manual value if overridden, segment total otherwise.
+    var formEffectiveDistanceMiles: Double {
+        if formIsDistanceManuallySet && formDistanceMiles > 0 { return formDistanceMiles }
+        let calc = formCalculatedDistanceMiles
+        return calc > 0 ? calc : formDistanceMiles
+    }
+
     func openAddSheet(for day: Date) {
         editingWorkout = nil
         sheetTargetDate = day.startOfDay
@@ -107,6 +132,7 @@ final class PlanViewModel {
         formCrossTrainingActivityType = .other
         formRunCategory = .none
         formRunSegments = []
+        formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -126,6 +152,8 @@ final class PlanViewModel {
         formCrossTrainingActivityType = workout.crossTrainingActivityType
         formRunCategory = workout.runCategory
         formRunSegments = workout.runSegments
+        // If stored distance differs from segment total, the user overrode it manually
+        formIsDistanceManuallySet = workout.plannedDistanceMiles > 0 && !workout.distanceIsFromSegments
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -143,6 +171,7 @@ final class PlanViewModel {
         formCrossTrainingActivityType = .other
         formRunCategory = .none
         formRunSegments = []
+        formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
     }
 

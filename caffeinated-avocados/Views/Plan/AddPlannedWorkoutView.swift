@@ -69,9 +69,11 @@ struct AddPlannedWorkoutView: View {
                         HStack {
                             Text("Segments")
                             Spacer()
+                            #if !os(macOS)
                             if !vm.formRunSegments.isEmpty {
                                 EditButton().font(.caption)
                             }
+                            #endif
                         }
                     } footer: {
                         if vm.formRunSegments.isEmpty {
@@ -93,13 +95,51 @@ struct AddPlannedWorkoutView: View {
 
                 // MARK: Distance
                 if vm.formShowsDistance {
-                    Section("Total Distance (optional)") {
-                        HStack {
-                            Text("Miles")
-                            Spacer()
-                            TextField("0.00", value: $vm.formDistanceMiles, format: .number)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
+                    let calc = vm.formCalculatedDistanceMiles
+                    Section {
+                        if vm.formType == .running && calc > 0 && !vm.formIsDistanceManuallySet {
+                            // Auto-calculated from segments — show read-only with override affordance
+                            HStack {
+                                Text("Miles")
+                                Spacer()
+                                Text(String(format: "%.2f", calc))
+                                    .foregroundStyle(.secondary)
+                                Button("Override") {
+                                    vm.formDistanceMiles = calc
+                                    vm.formIsDistanceManuallySet = true
+                                }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+                            }
+                        } else {
+                            HStack {
+                                Text("Miles")
+                                Spacer()
+                                TextField("0.00", value: $vm.formDistanceMiles, format: .number)
+                                    .keyboardType(.decimalPad)
+                                    .multilineTextAlignment(.trailing)
+                                    .onChange(of: vm.formDistanceMiles) { _, _ in
+                                        if vm.formType == .running { vm.formIsDistanceManuallySet = true }
+                                    }
+                                if vm.formType == .running && calc > 0 && vm.formIsDistanceManuallySet {
+                                    Button("Reset") {
+                                        vm.formIsDistanceManuallySet = false
+                                        vm.formDistanceMiles = 0
+                                    }
+                                    .font(.caption)
+                                    .buttonStyle(.bordered)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Total Distance (optional)")
+                    } footer: {
+                        if vm.formType == .running {
+                            if calc > 0 && !vm.formIsDistanceManuallySet {
+                                Text("Calculated from segments.")
+                            } else if calc > 0 && vm.formIsDistanceManuallySet {
+                                Text(String(format: "Manually set — segments total %.2f mi.", calc))
+                            }
                         }
                     }
                 }
@@ -192,7 +232,7 @@ struct AddPlannedWorkoutView: View {
             date: vm.sheetTargetDate,
             workoutType: vm.formType,
             title: vm.formTitle.isEmpty ? defaultTitle : vm.formTitle,
-            plannedDistanceMiles: vm.formShowsDistance ? vm.formDistanceMiles : 0,
+            plannedDistanceMiles: vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0,
             plannedDurationSeconds: vm.formDurationSeconds,
             crossTrainingActivityType: vm.formCrossTrainingActivityType,
             runCategory: vm.formRunCategory,
@@ -218,7 +258,7 @@ struct AddPlannedWorkoutView: View {
         let oldEventId = workout.calendarEventIdentifier
         workout.workoutType = vm.formType
         workout.title = vm.formTitle.isEmpty ? defaultTitle : vm.formTitle
-        workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formDistanceMiles : 0
+        workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0
         workout.plannedDurationSeconds = vm.formDurationSeconds
         workout.crossTrainingActivityType = vm.formCrossTrainingActivityType
         workout.runCategory = vm.formRunCategory

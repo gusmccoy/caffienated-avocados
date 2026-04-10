@@ -577,6 +577,16 @@ private struct DaySection: View {
 private struct PlannedWorkoutRow: View {
     let workout: PlannedWorkout
     @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
+    @AppStorage("defaultPaceSecondsPerMile") private var defaultPaceSecondsPerMile: Int = 0
+
+    /// Estimated distance from default pace when no distance is set but duration is.
+    private var estimatedDistanceMiles: Double? {
+        guard workout.workoutType == .running,
+              workout.plannedDistanceMiles == 0,
+              workout.plannedDurationSeconds > 0,
+              defaultPaceSecondsPerMile > 0 else { return nil }
+        return Double(workout.plannedDurationSeconds) / Double(defaultPaceSecondsPerMile)
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -639,9 +649,21 @@ private struct PlannedWorkoutRow: View {
                     }
 
                     if workout.plannedDistanceMiles > 0 {
-                        Text(distanceText)
+                        HStack(spacing: 2) {
+                            if workout.workoutType == .running && workout.distanceIsFromSegments {
+                                Image(systemName: "sum")
+                                    .font(.system(size: 8))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            Text(distanceText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } else if let est = estimatedDistanceMiles {
+                        Text("~\(formattedEstimate(est))")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
+                            .italic()
                     }
 
                     if workout.plannedDurationSeconds > 0 {
@@ -713,5 +735,12 @@ private struct PlannedWorkoutRow: View {
         let m = (s % 3600) / 60
         if h > 0 { return String(format: "%dh %02dm", h, m) }
         return String(format: "%dm", m)
+    }
+
+    private func formattedEstimate(_ miles: Double) -> String {
+        if distanceUnit == DistanceUnit.kilometers.rawValue {
+            return String(format: "%.2f km", miles.milesToKm)
+        }
+        return String(format: "%.2f mi", miles)
     }
 }

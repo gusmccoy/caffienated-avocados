@@ -68,22 +68,32 @@ struct AddRunSegmentView: View {
                             Picker("Min", selection: $paceMinutes) {
                                 ForEach(4...15, id: \.self) { Text(String($0)).tag($0) }
                             }
+                            #if os(macOS)
+                            .pickerStyle(.menu)
+                            #else
                             .pickerStyle(.wheel)
                             .frame(width: 60)
                             .clipped()
+                            #endif
                             Text(":")
                             Picker("Sec", selection: $paceSeconds) {
                                 ForEach(Array(stride(from: 0, through: 59, by: 5)), id: \.self) {
                                     Text(String(format: "%02d", $0)).tag($0)
                                 }
                             }
+                            #if os(macOS)
+                            .pickerStyle(.menu)
+                            #else
                             .pickerStyle(.wheel)
                             .frame(width: 60)
                             .clipped()
+                            #endif
                             Text("/mi")
                                 .foregroundStyle(.secondary)
                         }
+                        #if !os(macOS)
                         .frame(height: 100)
+                        #endif
                     }
                 }
 
@@ -122,8 +132,10 @@ struct AddRunSegmentView: View {
                         HStack {
                             Text("Ladder Steps")
                             Spacer()
+                            #if !os(macOS)
                             EditButton()
                                 .font(.caption)
+                            #endif
                         }
                     }
 

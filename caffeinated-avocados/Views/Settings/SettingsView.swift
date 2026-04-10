@@ -220,6 +220,10 @@ struct UnitsPreferenceView: View {
     @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
     @AppStorage("weightUnit")   private var weightUnit: String   = WeightUnit.lbs.rawValue
     @AppStorage("planCompletionThreshold") private var planCompletionThreshold: Double = 5.0
+    @AppStorage("defaultPaceSecondsPerMile") private var defaultPaceSecondsPerMile: Int = 0
+
+    private var paceMinutes: Int { defaultPaceSecondsPerMile / 60 }
+    private var paceSeconds: Int { defaultPaceSecondsPerMile % 60 }
 
     var body: some View {
         Form {
@@ -248,6 +252,42 @@ struct UnitsPreferenceView: View {
                 Text("Plan Matching")
             } footer: {
                 Text("When a synced activity is within this percentage of a planned workout's distance or duration, the planned workout is marked as completed.")
+            }
+            Section {
+                Stepper(value: Binding(
+                    get: { paceMinutes },
+                    set: { defaultPaceSecondsPerMile = $0 * 60 + paceSeconds }
+                ), in: 0...30) {
+                    HStack {
+                        Text("Minutes")
+                        Spacer()
+                        Text("\(paceMinutes)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Stepper(value: Binding(
+                    get: { paceSeconds },
+                    set: { defaultPaceSecondsPerMile = paceMinutes * 60 + $0 }
+                ), in: 0...59) {
+                    HStack {
+                        Text("Seconds")
+                        Spacer()
+                        Text(String(format: "%02d", paceSeconds))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if defaultPaceSecondsPerMile > 0 {
+                    HStack {
+                        Text("Default pace")
+                        Spacer()
+                        Text(String(format: "%d:%02d /mi", paceMinutes, paceSeconds))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Default Running Pace")
+            } footer: {
+                Text("Used to estimate distance for planned runs that have a duration but no set distance. Shown as ~X mi in the plan.")
             }
         }
         .navigationTitle("Units & Matching")

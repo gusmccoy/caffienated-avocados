@@ -159,6 +159,27 @@ final class PlannedWorkout {
         }
     }
 
+    /// Total distance derived from segments (repeats × count, ladder = sum of steps).
+    var segmentTotalMiles: Double {
+        runSegments.reduce(0.0) { total, seg in
+            switch seg.segmentType {
+            case .repeats, .fartlek:
+                return total + seg.distanceMiles * Double(max(1, seg.intervalCount))
+            case .ladder:
+                return total + seg.ladderDistances.reduce(0.0, +)
+            default:
+                return total + seg.distanceMiles
+            }
+        }
+    }
+
+    /// True when the stored distance matches what segments calculate (i.e. not manually overridden).
+    var distanceIsFromSegments: Bool {
+        let calc = segmentTotalMiles
+        return calc > 0 && abs(plannedDistanceMiles - calc) < 0.01
+    }
+
+    var notes: String = ""
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
