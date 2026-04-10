@@ -189,6 +189,17 @@ final class PlannedWorkout {
     var completedByStravaActivityId: String?
     var createdAt: Date
 
+    // MARK: - Planner (coach) attribution
+
+    /// The `PlannerRelationship.id.uuidString` of the coach who created this workout.
+    /// Nil when the athlete created it themselves.
+    var createdByPlannerRelationshipId: String? = nil
+    /// Cached display name of the planner — shown as a badge in the athlete's plan.
+    var plannerDisplayName: String? = nil
+
+    /// True when this workout was created by a planner (coach) on the athlete's behalf.
+    var isCoachCreated: Bool { createdByPlannerRelationshipId != nil }
+
     init(
         date: Date,
         workoutType: WorkoutType,
@@ -202,7 +213,9 @@ final class PlannedWorkout {
         intensityLevel: IntensityLevel = .moderate,
         calendarEventIdentifier: String? = nil,
         isCompleted: Bool = false,
-        completedByStravaActivityId: String? = nil
+        completedByStravaActivityId: String? = nil,
+        createdByPlannerRelationshipId: String? = nil,
+        plannerDisplayName: String? = nil
     ) {
         self.id = UUID()
         self.date = date
@@ -218,6 +231,8 @@ final class PlannedWorkout {
         self.calendarEventIdentifier = calendarEventIdentifier
         self.isCompleted = isCompleted
         self.completedByStravaActivityId = completedByStravaActivityId
+        self.createdByPlannerRelationshipId = createdByPlannerRelationshipId
+        self.plannerDisplayName = plannerDisplayName
         self.createdAt = .now
     }
 }

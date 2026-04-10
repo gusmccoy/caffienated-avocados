@@ -374,7 +374,7 @@ private struct RaceRow: View {
 
 // MARK: - Week Navigation Header
 
-private struct WeekNavigationHeader: View {
+struct WeekNavigationHeader: View {
     var vm: PlanViewModel
 
     var body: some View {
@@ -415,7 +415,7 @@ private struct WeekNavigationHeader: View {
 
 // MARK: - Week Mileage Card
 
-private struct WeekMileageCard: View {
+struct WeekMileageCard: View {
     let miles: Double
     @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
 
@@ -498,11 +498,14 @@ private struct DaySection: View {
             } else {
                 ForEach(workouts) { workout in
                     PlannedWorkoutRow(workout: workout)
+                        // Delete: athletes cannot delete coach-created workouts
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                deleteWorkout(workout)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                            if !workout.isCoachCreated {
+                                Button(role: .destructive) {
+                                    deleteWorkout(workout)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -521,7 +524,8 @@ private struct DaySection: View {
                                 }
                                 .tint(.orange)
                             }
-                            if !workout.isCompleted {
+                            // Edit: athletes cannot edit coach-created workouts
+                            if !workout.isCompleted && !workout.isCoachCreated {
                                 Button {
                                     vm.openEditSheet(for: workout)
                                 } label: {
@@ -532,10 +536,13 @@ private struct DaySection: View {
                         }
                         .contextMenu {
                             if !workout.isCompleted {
-                                Button {
-                                    vm.openEditSheet(for: workout)
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
+                                // Edit blocked for coach-created workouts
+                                if !workout.isCoachCreated {
+                                    Button {
+                                        vm.openEditSheet(for: workout)
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
                                 }
                                 Button {
                                     vm.markPlanComplete(workout, modelContext: modelContext)
@@ -549,10 +556,13 @@ private struct DaySection: View {
                                     Label("Unmark as Done", systemImage: "xmark.circle")
                                 }
                             }
-                            Button(role: .destructive) {
-                                deleteWorkout(workout)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                            // Delete blocked for coach-created workouts
+                            if !workout.isCoachCreated {
+                                Button(role: .destructive) {
+                                    deleteWorkout(workout)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                 }
@@ -574,7 +584,7 @@ private struct DaySection: View {
 
 // MARK: - Planned Workout Row
 
-private struct PlannedWorkoutRow: View {
+struct PlannedWorkoutRow: View {
     let workout: PlannedWorkout
     @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
     @AppStorage("defaultPaceSecondsPerMile") private var defaultPaceSecondsPerMile: Int = 0
@@ -619,6 +629,19 @@ private struct PlannedWorkoutRow: View {
                             .padding(.horizontal, 5)
                             .padding(.vertical, 1)
                             .background(Color.green.opacity(0.12), in: Capsule())
+                    }
+                    // Coach-created badge
+                    if workout.isCoachCreated {
+                        HStack(spacing: 3) {
+                            Image(systemName: "person.badge.shield.checkmark.fill")
+                                .font(.system(size: 8))
+                            Text(workout.plannerDisplayName ?? "Coach")
+                                .font(.caption2.weight(.medium))
+                        }
+                        .foregroundStyle(.purple)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color.purple.opacity(0.10), in: Capsule())
                     }
                 }
 
