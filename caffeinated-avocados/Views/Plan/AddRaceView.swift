@@ -11,6 +11,9 @@ struct AddRaceView: View {
     var editingRace: Race? = nil
     let calendarService: CalendarService
 
+    @State private var showingFuelPlan = false
+    @State private var localFuelPlan: FuelPlan? = nil
+
     @State private var name: String = ""
     @State private var date: Date = Calendar.current.date(byAdding: .month, value: 3, to: .now) ?? .now
     @State private var raceDistance: RaceDistance = .marathon
@@ -86,6 +89,31 @@ struct AddRaceView: View {
                     TextEditor(text: $notes)
                         .frame(minHeight: 60)
                 }
+
+                Section {
+                    Button {
+                        showingFuelPlan = true
+                    } label: {
+                        HStack {
+                            Label("Race Day Fuel Plan", systemImage: "fork.knife")
+                            Spacer()
+                            if localFuelPlan?.hasContent == true {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            } else {
+                                Text("Set Up")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.orange)
+                            }
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                } footer: {
+                    Text("Plan your race day nutrition and hydration strategy.")
+                }
             }
             .navigationTitle(editingRace == nil ? "Add Race" : "Edit Race")
             #if !os(macOS)
@@ -101,6 +129,14 @@ struct AddRaceView: View {
                 }
             }
             .onAppear { populateIfEditing() }
+            .sheet(isPresented: $showingFuelPlan) {
+                FuelPlanView(fuelPlan: localFuelPlan) { plan in
+                    if localFuelPlan == nil {
+                        modelContext.insert(plan)
+                    }
+                    localFuelPlan = plan
+                }
+            }
         }
     }
 
@@ -112,6 +148,7 @@ struct AddRaceView: View {
         customDistanceMiles = raceDistance == .custom ? race.distanceMiles : 0
         location = race.location
         notes = race.notes
+        localFuelPlan = race.fuelPlan
         if let secs = race.goalTimeSeconds {
             goalHours   = secs / 3600
             goalMinutes = (secs % 3600) / 60
@@ -129,6 +166,7 @@ struct AddRaceView: View {
             race.location = location
             race.goalTimeSeconds = goalTimeSeconds
             race.notes = notes
+            if let plan = localFuelPlan { race.fuelPlan = plan }
             Task { @MainActor in
                 if let id = oldEventId {
                     try? await calendarService.deleteEvent(identifier: id)
@@ -148,6 +186,7 @@ struct AddRaceView: View {
                 notes: notes
             )
             modelContext.insert(race)
+            race.fuelPlan = localFuelPlan
             Task { @MainActor in
                 if let eventId = try? await calendarService.createEvent(for: race) {
                     race.calendarEventIdentifier = eventId

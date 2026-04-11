@@ -193,6 +193,8 @@ final class PlannedWorkout {
 
     var notes: String = ""
     var postRunStrides: Bool = false
+    /// Optional fuel and nutrition plan for this workout.
+    @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
