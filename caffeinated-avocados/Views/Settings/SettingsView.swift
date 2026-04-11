@@ -627,7 +627,9 @@ private struct AcceptInviteSheet: View {
             Form {
                 Section {
                     TextField("e.g. A1B2C3D4", text: $plannerVM.acceptCodeInput)
+                        #if os(iOS)
                         .textInputAutocapitalization(.characters)
+                        #endif
                         .autocorrectionDisabled()
                         .font(.system(.body, design: .monospaced))
                 } header: {

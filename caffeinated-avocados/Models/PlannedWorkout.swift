@@ -208,9 +208,9 @@ final class PlannedWorkout {
 
     /// The `PlannerRelationship.id.uuidString` of the coach who created this workout.
     /// Nil when the athlete created it themselves.
-    var createdByPlannerRelationshipId: String? = nil
+    var createdByPlannerRelationshipId: String?
     /// Cached display name of the planner — shown as a badge in the athlete's plan.
-    var plannerDisplayName: String? = nil
+    var plannerDisplayName: String?
 
     /// True when this workout was created by a planner (coach) on the athlete's behalf.
     var isCoachCreated: Bool { createdByPlannerRelationshipId != nil }

@@ -15,15 +15,14 @@ final class ProfileViewModel {
         set { UserDefaults.standard.set(newValue, forKey: "profileFirstName") }
     }
 
-    var avocadoSinceDate: Date {
-        get {
-            (UserDefaults.standard.object(forKey: "profileAvocadoSinceDate") as? Date) ?? .now
+    /// The date the user first opened the app. Written once on first access, never changes.
+    var firstLaunchDate: Date {
+        if let stored = UserDefaults.standard.object(forKey: "profileFirstLaunchDate") as? Date {
+            return stored
         }
-        set { UserDefaults.standard.set(newValue, forKey: "profileAvocadoSinceDate") }
-    }
-
-    var avocadoSinceDateSet: Bool {
-        UserDefaults.standard.object(forKey: "profileAvocadoSinceDate") != nil
+        let now = Date.now
+        UserDefaults.standard.set(now, forKey: "profileFirstLaunchDate")
+        return now
     }
 
     // MARK: - PR View Mode
@@ -49,17 +48,14 @@ final class ProfileViewModel {
     // MARK: - Edit Profile Form
 
     var editFirstName: String = ""
-    var editAvocadoSince: Date = .now
 
     func openEditProfile() {
         editFirstName = firstName
-        editAvocadoSince = avocadoSinceDateSet ? avocadoSinceDate : .now
         isShowingEditProfile = true
     }
 
     func saveProfile() {
         firstName = editFirstName
-        avocadoSinceDate = editAvocadoSince
         isShowingEditProfile = false
     }
 
@@ -254,15 +250,10 @@ final class ProfileViewModel {
         }
     }
 
-    /// Membership duration string, e.g. "An Avocado for 2 years".
+    /// Membership label, e.g. "An avocado since 4/11/26".
     var avocadoMembershipLabel: String {
-        guard avocadoSinceDateSet else { return "An Avocado" }
-        let comps = Calendar.current.dateComponents([.year, .month, .day], from: avocadoSinceDate, to: .now)
-        let years = comps.year ?? 0
-        let months = comps.month ?? 0
-        let days = comps.day ?? 0
-        if years > 0 { return "An Avocado for \(years) year\(years == 1 ? "" : "s")" }
-        if months > 0 { return "An Avocado for \(months) month\(months == 1 ? "" : "s")" }
-        return "An Avocado for \(days) day\(days == 1 ? "" : "s")"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d/yy"
+        return "An avocado since \(formatter.string(from: firstLaunchDate))"
     }
 }

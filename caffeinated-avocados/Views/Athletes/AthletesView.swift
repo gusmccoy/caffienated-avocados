@@ -28,7 +28,11 @@ struct AthletesView: View {
                             AthleteRow(relationship: relationship)
                         }
                     }
+                    #if os(macOS)
+                    .listStyle(.inset)
+                    #else
                     .listStyle(.insetGrouped)
+                    #endif
                 }
             }
             .navigationTitle("Athletes")
@@ -131,10 +135,10 @@ struct AthletePlanView: View {
             CoachAddPlannedWorkoutView(vm: vm, relationship: relationship, calendarService: calendarService)
         }
         .sheet(isPresented: $showingAddRace) {
-            AddRaceView()
+            AddRaceView(calendarService: calendarService)
         }
         .sheet(item: $editingRace) { race in
-            AddRaceView(editingRace: race)
+            AddRaceView(editingRace: race, calendarService: calendarService)
         }
     }
 
@@ -440,10 +444,11 @@ struct CoachAddPlannedWorkoutView: View {
             runCategory: vm.formRunCategory,
             runSegments: vm.formRunSegments,
             notes: vm.formNotes,
-            intensityLevel: vm.formIntensity,
-            createdByPlannerRelationshipId: relationship.id.uuidString,
-            plannerDisplayName: relationship.plannerDisplayName
+            intensityLevel: vm.formIntensity
         )
+        // Tag workout as coach-created
+        workout.createdByPlannerRelationshipId = relationship.id.uuidString
+        workout.plannerDisplayName = relationship.plannerDisplayName
         modelContext.insert(workout)
     }
 

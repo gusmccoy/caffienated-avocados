@@ -72,17 +72,12 @@ struct ProfileView: View {
                         .font(.title3.weight(.bold))
                 }
                 HStack(spacing: 4) {
-                    Image(systemName: "avocado")
+                    Image(systemName: "leaf.fill")
                         .foregroundStyle(.green)
                         .font(.caption)
                     Text(vm.avocadoMembershipLabel)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                }
-                if vm.avocadoSinceDateSet {
-                    Text("Since \(vm.avocadoSinceDate.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
 
@@ -202,7 +197,7 @@ struct ProfileView: View {
     private var milestonesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             if milestones.isEmpty {
-                emptyState(message: "No milestones yet.\nCreate eras like "Post College" or "After Injury" to track PRs by period.")
+                emptyState(message: "No milestones yet.\nCreate eras like \"Post College\" or \"After Injury\" to track PRs by period.")
             } else {
                 ForEach(milestones) { milestone in
                     MilestoneCard(
@@ -349,13 +344,6 @@ private struct EditProfileSheet: View {
                 Section("Name") {
                     TextField("First name", text: $vm.editFirstName)
                         .autocorrectionDisabled()
-                }
-                Section {
-                    DatePicker("Start Date", selection: $vm.editAvocadoSince, displayedComponents: .date)
-                } header: {
-                    Text("An Avocado Since")
-                } footer: {
-                    Text("The date you started using McCoy Fitness.")
                 }
             }
             #if os(macOS)

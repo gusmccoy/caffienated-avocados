@@ -3,6 +3,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct NotificationsSettingsView: View {
     @Query(sort: \NotificationRule.createdAt) private var rules: [NotificationRule]
