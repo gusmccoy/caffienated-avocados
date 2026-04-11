@@ -112,26 +112,26 @@ The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are c
 
 ## Planned Features
 
-### Profile Tab
-- Athlete's first name and display preferences
-- "An Avocado since" date — tracks when the athlete started using the app
-- Personal Records for standard distances (1 Mile · 5K · 10K · Half Marathon · Marathon) with two modes:
-  - **All-Time** — best performance ever logged
-  - **Dynamic Milestones** — user-defined eras (e.g. Post College, Post Pregnancy, After Injury) each with their own PR set
+### Injury & Comeback Tracker
+- Mark yourself as injured or on an extended break — silences non-essential notifications while in that status
+- Log return-to-running milestones (cleared to walk, first easy run, back to full training)
+- Adjust plan suggestions and volume recommendations based on comeback phase
+- Tie into Dynamic Milestones so PRs can be tracked in a "Post-Injury" era
 
-### Strava Splits Integration
-- Read per-mile and per-km splits from synced Strava activities
-- Use splits data to automatically derive Year-to-Date Personal Records for each standard distance without requiring a dedicated race effort
+### Trend Dashboard
+- Line graphs for weekly mileage, average pace, and total volume over time
+- Heart rate zone distribution across recent activities
+- Week-over-week and month-over-month deltas to surface peaking, fatigue, and consistency patterns
 
-### Nutrition & Fuel Planning
-- Attach fuel and nutrition plans to planned workouts and races
-- Log pre-workout, mid-workout (gels, chews, fluids), and post-workout nutrition targets
-- Track actual vs. planned fuel intake alongside activity data
+### Workout Templates
+- Save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run")
+- Clone templates directly into the weekly plan with one tap
+- Manage and organize a personal template library
 
-### Enhanced Notifications
-- Configurable reminders for fuel timing, meal windows, sleep targets, and hydration
-- Rule-based triggers (e.g. "remind me 90 min before a long run to eat", "alert when sleep < 7 hours before a workout day")
-- Per-notification snooze and delivery preferences
+### Smart Suggestions
+- Flag undertraining weeks based on recent volume trends
+- Recommend recovery weeks after sustained high-volume blocks
+- Surface injury-return pattern warnings (e.g. ramping too fast post-comeback)
 
 ## Architecture Notes
 
