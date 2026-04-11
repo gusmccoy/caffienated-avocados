@@ -86,10 +86,13 @@ struct SettingsView: View {
             // Reminders
             Section {
                 PlanningReminderRow()
+                NavigationLink("Workout Reminders") {
+                    NotificationsSettingsView()
+                }
             } header: {
                 Text("Reminders")
             } footer: {
-                Text("Sends a notification every Sunday reminding you to plan the following week.")
+                Text("Sunday reminder plans next week. Workout Reminders let you set rule-based alerts for meals, hydration, fuel plans, and races.")
             }
 
             // Planner / Coach relationship
