@@ -42,6 +42,7 @@ enum RunSegmentType: String, Codable, CaseIterable {
 enum PaceReference: String, Codable, CaseIterable {
     case exact        = "Exact"
     case milePace     = "Mile Pace"
+    case twoMilePace  = "2 Mile Pace"
     case fiveKPace    = "5K Pace"
     case tenKPace     = "10K Pace"
     case halfPace     = "Half Marathon Pace"
