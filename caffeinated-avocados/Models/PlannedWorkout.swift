@@ -42,6 +42,7 @@ enum RunSegmentType: String, Codable, CaseIterable {
 enum PaceReference: String, Codable, CaseIterable {
     case exact        = "Exact"
     case milePace     = "Mile Pace"
+    case twoMilePace  = "2 Mile Pace"
     case fiveKPace    = "5K Pace"
     case tenKPace     = "10K Pace"
     case halfPace     = "Half Marathon Pace"
@@ -192,6 +193,8 @@ final class PlannedWorkout {
 
     var notes: String = ""
     var postRunStrides: Bool = false
+    /// Optional fuel and nutrition plan for this workout.
+    @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?

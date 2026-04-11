@@ -11,6 +11,8 @@ struct AddPlannedWorkoutView: View {
 
     @State private var addingSegment = false
     @State private var editingSegmentIndex: Int? = nil
+    @State private var showingFuelPlan = false
+    @State private var localFuelPlan: FuelPlan? = nil
 
     var body: some View {
         NavigationStack {
@@ -173,6 +175,32 @@ struct AddPlannedWorkoutView: View {
                         .frame(minHeight: 80)
                 }
 
+                // MARK: Fuel Plan
+                Section {
+                    Button {
+                        showingFuelPlan = true
+                    } label: {
+                        HStack {
+                            Label("Fuel Plan", systemImage: "fork.knife")
+                            Spacer()
+                            if localFuelPlan?.hasContent == true {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            } else {
+                                Text("Set Up")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.orange)
+                            }
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                } footer: {
+                    Text("Plan pre-, mid-, and post-workout nutrition and hydration.")
+                }
+
                 // MARK: Calendar Warning
                 if vm.calendarAuthorizationDenied {
                     Section {
@@ -212,6 +240,18 @@ struct AddPlannedWorkoutView: View {
                     onSave: { vm.formRunSegments[idx] = $0 },
                     onDelete: { vm.formRunSegments.remove(at: idx) }
                 )
+            }
+            // Fuel plan editor
+            .sheet(isPresented: $showingFuelPlan) {
+                FuelPlanView(fuelPlan: localFuelPlan) { plan in
+                    if localFuelPlan == nil {
+                        modelContext.insert(plan)
+                    }
+                    localFuelPlan = plan
+                }
+            }
+            .onAppear {
+                localFuelPlan = vm.editingWorkout?.fuelPlan
             }
         }
     }
@@ -257,6 +297,7 @@ struct AddPlannedWorkoutView: View {
             intensityLevel: vm.formIntensity
         )
         modelContext.insert(workout)
+        workout.fuelPlan = localFuelPlan
 
         Task { @MainActor in
             let granted = await calendarService.requestAccessIfNeeded()
@@ -283,6 +324,9 @@ struct AddPlannedWorkoutView: View {
         workout.notes = vm.formNotes
         workout.postRunStrides = vm.formPostRunStrides
         workout.intensityLevel = vm.formIntensity
+        if let plan = localFuelPlan {
+            workout.fuelPlan = plan
+        }
 
         Task { @MainActor in
             if let id = oldEventId {

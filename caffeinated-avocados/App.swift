@@ -22,6 +22,10 @@ struct McCoyFitnessApp: App {
             PlannedWorkout.self,
             Race.self,
             PlannerRelationship.self,
+            PersonalRecord.self,
+            PRMilestone.self,
+            FuelPlan.self,
+            NotificationRule.self,
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -49,12 +53,26 @@ struct McCoyFitnessApp: App {
         WindowGroup {
             ContentView()
                 .task {
+                    // Weekly planning reminder
                     let enabled = UserDefaults.standard.bool(forKey: "planningReminderEnabled")
-                    guard enabled else { return }
-                    await WeeklyPlanningReminderService.requestPermission()
-                    let raw = UserDefaults.standard.object(forKey: "planningReminderMinutesSinceMidnight") as? Int ?? 720
-                    let mins = raw > 0 ? raw : 720
-                    WeeklyPlanningReminderService.scheduleReminder(hour: mins / 60, minute: mins % 60)
+                    if enabled {
+                        await WeeklyPlanningReminderService.requestPermission()
+                        let raw = UserDefaults.standard.object(forKey: "planningReminderMinutesSinceMidnight") as? Int ?? 720
+                        let mins = raw > 0 ? raw : 720
+                        WeeklyPlanningReminderService.scheduleReminder(hour: mins / 60, minute: mins % 60)
+                    }
+
+                    // Enhanced rule-based notifications
+                    await EnhancedNotificationService.requestPermission()
+                    let ctx = modelContainer.mainContext
+                    let rules = (try? ctx.fetch(FetchDescriptor<NotificationRule>())) ?? []
+                    let workouts = (try? ctx.fetch(FetchDescriptor<PlannedWorkout>())) ?? []
+                    let races = (try? ctx.fetch(FetchDescriptor<Race>())) ?? []
+                    EnhancedNotificationService.scheduleNotifications(
+                        rules: rules,
+                        plannedWorkouts: workouts,
+                        races: races
+                    )
                 }
         }
         .modelContainer(modelContainer)

@@ -29,6 +29,11 @@ struct ContentView: View {
                     Label("Activities", systemImage: "figure.run")
                 }
 
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.fill")
+                }
+
             // Athletes tab — only visible when the user is acting as a planner for someone
             if isCoachingAnyone {
                 AthletesView()

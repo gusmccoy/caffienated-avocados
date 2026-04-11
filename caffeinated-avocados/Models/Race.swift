@@ -6,6 +6,8 @@ import SwiftData
 
 /// Common race distances with preset mileage. Choose .custom to enter a manual distance.
 enum RaceDistance: String, Codable, CaseIterable {
+    case mile         = "1 Mile"
+    case twoMile      = "2 Mile"
     case fiveK        = "5K"
     case eightK       = "8K"
     case tenK         = "10K"
@@ -22,6 +24,8 @@ enum RaceDistance: String, Codable, CaseIterable {
     /// Preset distance in miles. Nil for `.custom`.
     var presetMiles: Double? {
         switch self {
+        case .mile:         return 1.0
+        case .twoMile:      return 2.0
         case .fiveK:        return 3.107
         case .eightK:       return 4.971
         case .tenK:         return 6.214
@@ -51,6 +55,8 @@ final class Race {
     var notes: String
     var isCompleted: Bool = false
     var calendarEventIdentifier: String?
+    /// Optional fuel and nutrition plan for this race.
+    @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
     var createdAt: Date
 
     init(
