@@ -22,6 +22,8 @@ struct McCoyFitnessApp: App {
             PlannedWorkout.self,
             Race.self,
             PlannerRelationship.self,
+            PersonalRecord.self,
+            PRMilestone.self,
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
