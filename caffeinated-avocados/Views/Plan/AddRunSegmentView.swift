@@ -25,6 +25,7 @@ struct AddRunSegmentView: View {
     // Intervals (repeats / fartlek)
     @State private var intervalCount: Int = 4
     @State private var recoveryDurationSeconds: Int = 90
+    @State private var isHills: Bool = false
 
     // Ladder
     @State private var ladderDistances: [Double] = [0.25, 0.5, 0.75, 0.5, 0.25]
@@ -181,6 +182,9 @@ struct AddRunSegmentView: View {
                         }
                         .pickerStyle(.menu)
                     }
+                    if segmentType == .repeats {
+                        Toggle("Hills", isOn: $isHills)
+                    }
                 }
 
                 Section("Recovery Between Reps") {
@@ -251,6 +255,7 @@ struct AddRunSegmentView: View {
         durationMinutes      = s.durationMinutes
         intervalCount        = s.intervalCount
         recoveryDurationSeconds = s.recoveryDurationSeconds
+        isHills              = s.isHills
         ladderDistances      = s.ladderDistances.isEmpty ? [0.25, 0.5, 0.75, 0.5, 0.25] : s.ladderDistances
         notes                = s.notes
     }
@@ -265,6 +270,7 @@ struct AddRunSegmentView: View {
         seg.durationMinutes      = segmentType.isLadder || segmentType.hasIntervals ? 0 : durationMinutes
         seg.intervalCount        = segmentType.hasIntervals ? intervalCount : 0
         seg.recoveryDurationSeconds = (segmentType.hasIntervals || segmentType.isLadder) ? recoveryDurationSeconds : 0
+        seg.isHills              = segmentType == .repeats ? isHills : false
         seg.ladderDistances      = segmentType.isLadder ? ladderDistances : []
         seg.notes                = notes
         onSave(seg)

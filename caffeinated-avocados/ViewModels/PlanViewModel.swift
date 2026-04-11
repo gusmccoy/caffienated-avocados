@@ -83,6 +83,7 @@ final class PlanViewModel {
     var formCrossTrainingActivityType: CrossTrainingActivityType = .other
     var formRunCategory: RunCategory = .none
     var formRunSegments: [PlannedRunSegment] = []
+    var formPostRunStrides: Bool = false
     var calendarAuthorizationDenied: Bool = false
 
     var formDurationSeconds: Int { formHours * 3600 + formMinutes * 60 + formSeconds }
@@ -132,6 +133,7 @@ final class PlanViewModel {
         formCrossTrainingActivityType = .other
         formRunCategory = .none
         formRunSegments = []
+        formPostRunStrides = false
         formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
@@ -152,6 +154,7 @@ final class PlanViewModel {
         formCrossTrainingActivityType = workout.crossTrainingActivityType
         formRunCategory = workout.runCategory
         formRunSegments = workout.runSegments
+        formPostRunStrides = workout.postRunStrides
         // If stored distance differs from segment total, the user overrode it manually
         formIsDistanceManuallySet = workout.plannedDistanceMiles > 0 && !workout.distanceIsFromSegments
         calendarAuthorizationDenied = false
@@ -171,6 +174,7 @@ final class PlanViewModel {
         formCrossTrainingActivityType = .other
         formRunCategory = .none
         formRunSegments = []
+        formPostRunStrides = false
         formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
     }

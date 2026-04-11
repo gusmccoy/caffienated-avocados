@@ -65,6 +65,8 @@ struct AddPlannedWorkoutView: View {
                         } label: {
                             Label("Add Segment", systemImage: "plus.circle")
                         }
+
+                        Toggle("Post Run Strides", isOn: $vm.formPostRunStrides)
                     } header: {
                         HStack {
                             Text("Segments")
@@ -238,6 +240,7 @@ struct AddPlannedWorkoutView: View {
             runCategory: vm.formRunCategory,
             runSegments: vm.formRunSegments,
             notes: vm.formNotes,
+            postRunStrides: vm.formPostRunStrides,
             intensityLevel: vm.formIntensity
         )
         modelContext.insert(workout)
@@ -264,6 +267,7 @@ struct AddPlannedWorkoutView: View {
         workout.runCategory = vm.formRunCategory
         workout.runSegments = vm.formRunSegments
         workout.notes = vm.formNotes
+        workout.postRunStrides = vm.formPostRunStrides
         workout.intensityLevel = vm.formIntensity
 
         Task { @MainActor in

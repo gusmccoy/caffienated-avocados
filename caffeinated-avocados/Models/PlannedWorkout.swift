@@ -70,6 +70,9 @@ struct PlannedRunSegment: Codable, Identifiable {
     // Ladder: ordered list of per-step distances in miles
     var ladderDistances: [Double] = []
 
+    // Repeats modifier
+    var isHills: Bool = false
+
     var notes: String = ""
 
     // MARK: - Display
@@ -180,6 +183,7 @@ final class PlannedWorkout {
     }
 
     var notes: String = ""
+    var postRunStrides: Bool = false
     var intensityLevel: IntensityLevel
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
@@ -210,6 +214,7 @@ final class PlannedWorkout {
         runCategory: RunCategory = .none,
         runSegments: [PlannedRunSegment] = [],   // encoded into runSegmentsData
         notes: String = "",
+        postRunStrides: Bool = false,
         intensityLevel: IntensityLevel = .moderate,
         calendarEventIdentifier: String? = nil,
         isCompleted: Bool = false,
@@ -227,6 +232,7 @@ final class PlannedWorkout {
         self.runCategoryRaw = runCategory.rawValue
         self.runSegmentsData = (try? JSONEncoder().encode(runSegments)) ?? Data()
         self.notes = notes
+        self.postRunStrides = postRunStrides
         self.intensityLevel = intensityLevel
         self.calendarEventIdentifier = calendarEventIdentifier
         self.isCompleted = isCompleted
