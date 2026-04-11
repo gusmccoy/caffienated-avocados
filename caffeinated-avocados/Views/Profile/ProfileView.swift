@@ -8,6 +8,7 @@ struct ProfileView: View {
     @State private var vm = ProfileViewModel()
     @Query private var allPRs: [PersonalRecord]
     @Query(sort: \PRMilestone.orderIndex) private var milestones: [PRMilestone]
+    @Query private var allSessions: [WorkoutSession]
     @Environment(\.modelContext) private var modelContext
 
     var body: some View {
@@ -99,7 +100,7 @@ struct ProfileView: View {
                     .font(.headline)
                 Spacer()
                 Button {
-                    vm.openAddPR(milestoneId: vm.prMode == .allTime ? nil : nil)
+                    vm.openAddPR()
                 } label: {
                     Image(systemName: "plus.circle.fill")
                         .foregroundStyle(.orange)
@@ -117,6 +118,8 @@ struct ProfileView: View {
 
             if vm.prMode == .allTime {
                 allTimePRList
+            } else if vm.prMode == .ytd {
+                ytdPRSection
             } else {
                 milestonesSection
             }
@@ -138,6 +141,56 @@ struct ProfileView: View {
                     }
                     if pr.id != bestPRs.last?.id {
                         Divider().padding(.leading, 36)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Year-to-Date (Strava derived)
+
+    private var ytdPRSection: some View {
+        let year = Calendar.current.component(.year, from: .now)
+        let ytdPRs = allPRs.filter { $0.isDerivedFromStrava && $0.ytdYear == year }
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Best Efforts \(year)")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Derived from Strava splits")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    vm.deriveYTDPRs(from: allSessions, modelContext: modelContext)
+                } label: {
+                    if vm.isDerivedPRsLoading {
+                        ProgressView().scaleEffect(0.8)
+                    } else {
+                        Label("Update", systemImage: "arrow.triangle.2.circlepath")
+                            .font(.caption)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
+                .disabled(vm.isDerivedPRsLoading)
+            }
+
+            if ytdPRs.isEmpty {
+                emptyState(message: "No YTD data yet.\nSync Strava activities with split data, then tap Update.")
+            } else {
+                let sorted = PRDistance.allCases.compactMap { dist in
+                    ytdPRs.filter { $0.distance == dist }.min(by: { $0.timeSeconds < $1.timeSeconds })
+                }
+                VStack(spacing: 0) {
+                    ForEach(sorted) { pr in
+                        PRRow(pr: pr) {
+                            vm.deletePR(pr, modelContext: modelContext)
+                        }
+                        if pr.id != sorted.last?.id {
+                            Divider().padding(.leading, 36)
+                        }
                     }
                 }
             }

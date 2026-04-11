@@ -95,6 +95,42 @@ struct StravaActivity: Decodable, Identifiable {
     }
 }
 
+/// Per-mile (standard) split returned by Strava's /activities/{id} endpoint.
+struct StravaSplit: Decodable {
+    /// 1-indexed split number.
+    let split: Int
+    /// Distance covered in this split, in meters (usually ~1609 m for full-mile splits).
+    let distance: Double
+    /// Moving time for this split, in seconds.
+    let movingTime: Int
+    let averageHeartrate: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case split, distance
+        case movingTime       = "moving_time"
+        case averageHeartrate = "average_heartrate"
+    }
+
+    /// Normalised pace in seconds per mile.
+    var paceSecondsPerMile: Int {
+        let distanceMiles = distance / 1609.34
+        guard distanceMiles > 0 else { return 0 }
+        return Int((Double(movingTime) / distanceMiles).rounded())
+    }
+}
+
+/// Detailed activity returned by Strava's /activities/{id} endpoint.
+struct StravaActivityDetail: Decodable {
+    let id: Int
+    /// Per-mile splits (nil if the activity has no GPS / splits data).
+    let splitsStandard: [StravaSplit]?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case splitsStandard = "splits_standard"
+    }
+}
+
 /// Strava OAuth token response.
 struct StravaTokenResponse: Decodable {
     let tokenType: String

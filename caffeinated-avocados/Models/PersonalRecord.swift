@@ -53,13 +53,22 @@ final class PersonalRecord {
     var notes: String
     /// UUID of the `PRMilestone` this PR belongs to. `nil` = all-time record.
     var milestoneIdString: String?
+    /// True when this PR was automatically derived from Strava splits data.
+    var isDerivedFromStrava: Bool = false
+    /// The Strava activity ID that produced this derived PR.
+    var sourceStravaActivityId: String? = nil
+    /// Calendar year this PR counts for (used for YTD scoping). `nil` = no year restriction.
+    var ytdYear: Int? = nil
 
     init(
         distance: PRDistance,
         timeSeconds: Int,
         dateAchieved: Date = .now,
         notes: String = "",
-        milestoneId: UUID? = nil
+        milestoneId: UUID? = nil,
+        isDerivedFromStrava: Bool = false,
+        sourceStravaActivityId: String? = nil,
+        ytdYear: Int? = nil
     ) {
         self.id = UUID()
         self.distanceRaw = distance.rawValue
@@ -67,6 +76,9 @@ final class PersonalRecord {
         self.dateAchieved = dateAchieved
         self.notes = notes
         self.milestoneIdString = milestoneId?.uuidString
+        self.isDerivedFromStrava = isDerivedFromStrava
+        self.sourceStravaActivityId = sourceStravaActivityId
+        self.ytdYear = ytdYear
     }
 
     var distance: PRDistance {

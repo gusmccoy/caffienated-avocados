@@ -30,9 +30,14 @@ final class ProfileViewModel {
 
     enum PRMode: String, CaseIterable {
         case allTime    = "All-Time"
+        case ytd        = "This Year"
         case milestones = "Milestones"
     }
     var prMode: PRMode = .allTime
+
+    // MARK: - YTD PR Derivation
+
+    var isDerivedPRsLoading: Bool = false
 
     // MARK: - Sheet State
 
@@ -143,6 +148,91 @@ final class ProfileViewModel {
             modelContext.delete(pr)
         }
         modelContext.delete(milestone)
+    }
+
+    // MARK: - YTD PR Derivation from Strava Splits
+
+    /// Scans all running sessions with splits data and creates/refreshes `PersonalRecord`
+    /// entries tagged as Strava-derived for the current calendar year.
+    @MainActor
+    func deriveYTDPRs(from sessions: [WorkoutSession], modelContext: ModelContext) {
+        isDerivedPRsLoading = true
+        defer { isDerivedPRsLoading = false }
+
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: .now)
+        guard let yearStart = calendar.date(from: DateComponents(year: year, month: 1, day: 1)) else { return }
+
+        // Runs this year that have splits data
+        let ytdRuns = sessions.filter { session in
+            guard session.type == .running, session.date >= yearStart else { return false }
+            return !(session.runningWorkout?.splits.isEmpty ?? true)
+        }
+
+        // Find best effort time for each PR distance across all qualifying runs
+        var bestEfforts: [PRDistance: (timeSeconds: Int, date: Date, stravaId: String)] = [:]
+
+        for session in ytdRuns {
+            guard let run = session.runningWorkout else { continue }
+            for prDist in PRDistance.allCases {
+                guard run.distanceMiles >= prDist.distanceMiles * 0.95 else { continue }
+                let estimated = estimateTimeForDistance(prDist.distanceMiles, from: run.splits)
+                guard estimated > 0 else { continue }
+                if let existing = bestEfforts[prDist] {
+                    if estimated < existing.timeSeconds {
+                        bestEfforts[prDist] = (estimated, session.date, session.stravaActivityId ?? "")
+                    }
+                } else {
+                    bestEfforts[prDist] = (estimated, session.date, session.stravaActivityId ?? "")
+                }
+            }
+        }
+
+        // Delete old derived PRs for this year
+        for pr in (try? modelContext.fetch(FetchDescriptor<PersonalRecord>())) ?? [] {
+            if pr.isDerivedFromStrava && pr.ytdYear == year {
+                modelContext.delete(pr)
+            }
+        }
+
+        // Insert new derived PRs
+        for (distance, effort) in bestEfforts {
+            let pr = PersonalRecord(
+                distance: distance,
+                timeSeconds: effort.timeSeconds,
+                dateAchieved: effort.date,
+                notes: "Derived from Strava splits",
+                milestoneId: nil,
+                isDerivedFromStrava: true,
+                sourceStravaActivityId: effort.stravaId.isEmpty ? nil : effort.stravaId,
+                ytdYear: year
+            )
+            modelContext.insert(pr)
+        }
+    }
+
+    /// Estimates the time to cover `targetMiles` using cumulative mile-split data.
+    private func estimateTimeForDistance(_ targetMiles: Double, from splits: [RunningSplit]) -> Int {
+        let sortedSplits = splits.sorted { $0.splitNumber < $1.splitNumber }
+        var cumulativeMiles = 0.0
+        var cumulativeSeconds = 0
+
+        for split in sortedSplits {
+            let splitMiles = split.distanceUnit == .miles ? 1.0 : (1.0 / 1.60934)
+            let splitTime  = split.paceSecondsPerUnit   // seconds to cover 1 unit at this pace
+
+            let needed = targetMiles - cumulativeMiles
+            if needed <= splitMiles {
+                let fraction = needed / splitMiles
+                cumulativeSeconds += Int((Double(splitTime) * fraction).rounded())
+                return cumulativeSeconds
+            }
+
+            cumulativeMiles += splitMiles
+            cumulativeSeconds += splitTime
+        }
+
+        return 0  // Not enough splits to reach targetMiles
     }
 
     // MARK: - Helpers

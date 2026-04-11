@@ -78,6 +78,13 @@ final class StravaService {
 
     // MARK: - Activities
 
+    /// Fetches full activity detail — includes `splits_standard` (per-mile splits).
+    func fetchActivityDetail(id: Int) async throws -> StravaActivityDetail {
+        let token = try validAccessToken()
+        let url = URL(string: "\(StravaAPI.baseURL)/activities/\(id)")!
+        return try await get(url: url, token: token)
+    }
+
     /// Fetches the most recent 50 activities from Strava.
     func fetchRecentActivities(page: Int = 1, perPage: Int = 50) async throws -> [StravaActivity] {
         let token = try validAccessToken()

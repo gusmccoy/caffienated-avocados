@@ -264,6 +264,21 @@ final class StravaViewModel {
             )
             run.session = session
             session.runningWorkout = run
+
+            // Fetch per-mile splits and store them for later PR derivation.
+            // Silently ignore errors — splits are optional enrichment data.
+            if let detail = try? await stravaService.fetchActivityDetail(id: activity.id),
+               let stravaSplits = detail.splitsStandard, !stravaSplits.isEmpty {
+                run.splits = stravaSplits.map { split in
+                    RunningSplit(
+                        splitNumber: split.split,
+                        distanceUnit: .miles,
+                        paceSecondsPerUnit: split.paceSecondsPerMile,
+                        heartRateAvg: split.averageHeartrate.map(Int.init)
+                    )
+                }
+            }
+
             modelContext.insert(run)
         } else if workoutType == .crossTraining {
             let ct = CrossTrainingWorkout(
