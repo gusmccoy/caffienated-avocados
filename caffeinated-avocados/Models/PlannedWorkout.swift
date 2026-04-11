@@ -132,6 +132,14 @@ final class PlannedWorkout {
     // Stored as plain String so Core Data can apply the inline default during lightweight
     // migration (avoids "Could not cast Optional<Any> to EnumType" on existing records).
 
+    /// Raw storage for strengthType — do not access directly.
+    var strengthTypeRaw: String = StrengthType.unspecified.rawValue
+    /// Strength session classification (Upper Body / Lower Body / Core / Full Body); ignored for non-strength types.
+    var strengthType: StrengthType {
+        get { StrengthType(rawValue: strengthTypeRaw) ?? .unspecified }
+        set { strengthTypeRaw = newValue.rawValue }
+    }
+
     /// Raw storage for crossTrainingActivityType — do not access directly.
     var crossTrainingActivityTypeRaw: String = CrossTrainingActivityType.other.rawValue
     /// Activity type for cross-training workouts; ignored for other types.
@@ -210,6 +218,7 @@ final class PlannedWorkout {
         title: String = "",
         plannedDistanceMiles: Double = 0,
         plannedDurationSeconds: Int = 0,
+        strengthType: StrengthType = .unspecified,
         crossTrainingActivityType: CrossTrainingActivityType = .other,
         runCategory: RunCategory = .none,
         runSegments: [PlannedRunSegment] = [],   // encoded into runSegmentsData
@@ -228,6 +237,7 @@ final class PlannedWorkout {
         self.title = title
         self.plannedDistanceMiles = plannedDistanceMiles
         self.plannedDurationSeconds = plannedDurationSeconds
+        self.strengthTypeRaw = strengthType.rawValue
         self.crossTrainingActivityTypeRaw = crossTrainingActivityType.rawValue
         self.runCategoryRaw = runCategory.rawValue
         self.runSegmentsData = (try? JSONEncoder().encode(runSegments)) ?? Data()

@@ -80,6 +80,7 @@ final class PlanViewModel {
     var formSeconds: Int = 0
     var formNotes: String = ""
     var formIntensity: IntensityLevel = .moderate
+    var formStrengthType: StrengthType = .unspecified
     var formCrossTrainingActivityType: CrossTrainingActivityType = .other
     var formRunCategory: RunCategory = .none
     var formRunSegments: [PlannedRunSegment] = []
@@ -132,6 +133,7 @@ final class PlanViewModel {
         formIntensity = .moderate
         formCrossTrainingActivityType = .other
         formRunCategory = .none
+        formStrengthType = .unspecified
         formRunSegments = []
         formPostRunStrides = false
         formIsDistanceManuallySet = false
@@ -153,6 +155,7 @@ final class PlanViewModel {
         formIntensity = workout.intensityLevel
         formCrossTrainingActivityType = workout.crossTrainingActivityType
         formRunCategory = workout.runCategory
+        formStrengthType = workout.strengthType
         formRunSegments = workout.runSegments
         formPostRunStrides = workout.postRunStrides
         // If stored distance differs from segment total, the user overrode it manually
@@ -173,6 +176,7 @@ final class PlanViewModel {
         formIntensity = .moderate
         formCrossTrainingActivityType = .other
         formRunCategory = .none
+        formStrengthType = .unspecified
         formRunSegments = []
         formPostRunStrides = false
         formIsDistanceManuallySet = false

@@ -26,6 +26,18 @@ struct AddPlannedWorkoutView: View {
                     .labelsHidden()
                 }
 
+                // MARK: Strength Type
+                if vm.formType == .strength {
+                    Section("Strength Type") {
+                        Picker("Type", selection: $vm.formStrengthType) {
+                            ForEach(StrengthType.allCases, id: \.self) { type in
+                                Text(type == .unspecified ? "Unspecified" : type.rawValue).tag(type)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                }
+
                 // MARK: Cross-Training Activity Type
                 if vm.formType == .crossTraining {
                     Section("Activity Type") {
@@ -236,6 +248,7 @@ struct AddPlannedWorkoutView: View {
             title: vm.formTitle.isEmpty ? defaultTitle : vm.formTitle,
             plannedDistanceMiles: vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0,
             plannedDurationSeconds: vm.formDurationSeconds,
+            strengthType: vm.formStrengthType,
             crossTrainingActivityType: vm.formCrossTrainingActivityType,
             runCategory: vm.formRunCategory,
             runSegments: vm.formRunSegments,
@@ -265,6 +278,7 @@ struct AddPlannedWorkoutView: View {
         workout.plannedDurationSeconds = vm.formDurationSeconds
         workout.crossTrainingActivityType = vm.formCrossTrainingActivityType
         workout.runCategory = vm.formRunCategory
+        workout.strengthType = vm.formStrengthType
         workout.runSegments = vm.formRunSegments
         workout.notes = vm.formNotes
         workout.postRunStrides = vm.formPostRunStrides

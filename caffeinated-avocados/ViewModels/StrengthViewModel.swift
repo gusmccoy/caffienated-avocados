@@ -17,6 +17,7 @@ final class StrengthViewModel {
     var minutes: Int = 0
     var seconds: Int = 0
     var intensityLevel: IntensityLevel = .moderate
+    var strengthType: StrengthType = .unspecified
     var heartRateAvg: String = ""
     var caloriesBurned: String = ""
     var notes: String = ""
@@ -105,6 +106,7 @@ final class StrengthViewModel {
         minutes = 0
         seconds = 0
         intensityLevel = .moderate
+        strengthType = .unspecified
         heartRateAvg = ""
         caloriesBurned = ""
         notes = ""
@@ -128,6 +130,7 @@ final class StrengthViewModel {
 
         let strength = StrengthWorkout(
             workoutTemplate: workoutTemplate.isEmpty ? nil : workoutTemplate,
+            strengthType: strengthType,
             primaryMuscleGroups: Array(selectedMuscleGroups)
         )
 

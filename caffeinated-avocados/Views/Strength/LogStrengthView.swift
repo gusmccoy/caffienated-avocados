@@ -29,6 +29,11 @@ struct LogStrengthView: View {
                     DatePicker("Date", selection: $vm.date, displayedComponents: .date)
                         .onChange(of: vm.date) { _, _ in checkStravaConflict() }
                     TextField("Title (optional)", text: $vm.title)
+                    Picker("Type", selection: $vm.strengthType) {
+                        ForEach(StrengthType.allCases, id: \.self) { type in
+                            Text(type == .unspecified ? "Unspecified" : type.rawValue).tag(type)
+                        }
+                    }
                     TextField("Template (e.g. Push Day A)", text: $vm.workoutTemplate)
                 }
 

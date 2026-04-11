@@ -4,6 +4,15 @@
 import Foundation
 import SwiftData
 
+/// Broad classification for a strength session.
+enum StrengthType: String, Codable, CaseIterable {
+    case unspecified = "Unspecified"
+    case upper    = "Upper Body"
+    case lower    = "Lower Body"
+    case core     = "Core"
+    case fullBody = "Full Body"
+}
+
 /// High-level muscle group category.
 enum MuscleGroup: String, Codable, CaseIterable {
     case chest      = "Chest"
@@ -35,6 +44,11 @@ enum WeightUnit: String, Codable, CaseIterable {
 final class StrengthWorkout {
     var id: UUID
     var workoutTemplate: String?      // e.g. "Push Day A", "5/3/1 Week 1"
+    var strengthTypeRaw: String = StrengthType.unspecified.rawValue
+    var strengthType: StrengthType {
+        get { StrengthType(rawValue: strengthTypeRaw) ?? .unspecified }
+        set { strengthTypeRaw = newValue.rawValue }
+    }
     var primaryMuscleGroups: [MuscleGroup]
     var totalVolumeLbs: Double        // Computed sum of (weight × reps) for all sets
     var restBetweenSetsSecs: Int?
@@ -45,11 +59,13 @@ final class StrengthWorkout {
 
     init(
         workoutTemplate: String? = nil,
+        strengthType: StrengthType = .unspecified,
         primaryMuscleGroups: [MuscleGroup] = [],
         restBetweenSetsSecs: Int? = nil
     ) {
         self.id = UUID()
         self.workoutTemplate = workoutTemplate
+        self.strengthTypeRaw = strengthType.rawValue
         self.primaryMuscleGroups = primaryMuscleGroups
         self.totalVolumeLbs = 0
         self.restBetweenSetsSecs = restBetweenSetsSecs
