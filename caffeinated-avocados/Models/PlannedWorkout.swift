@@ -49,6 +49,20 @@ enum PaceReference: String, Codable, CaseIterable {
     case marathonPace = "Marathon Pace"
 }
 
+// MARK: - Route Coordinate
+
+/// A single latitude/longitude point used to store running routes on planned workouts.
+struct RouteCoordinate: Codable, Equatable {
+    var latitude: Double
+    var longitude: Double
+}
+
+/// A user-placed waypoint that MKDirections routes through.
+struct RouteWaypoint: Codable, Equatable {
+    var latitude: Double
+    var longitude: Double
+}
+
 // MARK: - Planned Run Segment
 
 struct PlannedRunSegment: Codable, Identifiable {
@@ -190,6 +204,40 @@ final class PlannedWorkout {
         let calc = segmentTotalMiles
         return calc > 0 && abs(plannedDistanceMiles - calc) < 0.01
     }
+
+    // MARK: - Route
+
+    /// JSON-encoded [RouteCoordinate] — the full polyline for the planned route.
+    var routePolylineData: Data = Data()
+    /// Decoded route polyline. Encodes/decodes transparently through `routePolylineData`.
+    var routePolyline: [RouteCoordinate] {
+        get {
+            guard !routePolylineData.isEmpty else { return [] }
+            return (try? JSONDecoder().decode([RouteCoordinate].self, from: routePolylineData)) ?? []
+        }
+        set {
+            routePolylineData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
+
+    /// JSON-encoded [RouteWaypoint] — user-placed pins that define the route path.
+    var routeWaypointsData: Data = Data()
+    /// Decoded route waypoints for re-editing the route later.
+    var routeWaypoints: [RouteWaypoint] {
+        get {
+            guard !routeWaypointsData.isEmpty else { return [] }
+            return (try? JSONDecoder().decode([RouteWaypoint].self, from: routeWaypointsData)) ?? []
+        }
+        set {
+            routeWaypointsData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
+
+    /// Distance of the planned route in miles, as calculated by MapKit directions.
+    var routeDistanceMiles: Double = 0
+
+    /// True when the workout has a planned route with at least two waypoints.
+    var hasRoute: Bool { routeWaypoints.count >= 2 }
 
     var notes: String = ""
     var postRunStrides: Bool = false

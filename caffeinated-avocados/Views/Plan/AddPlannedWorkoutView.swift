@@ -13,6 +13,7 @@ struct AddPlannedWorkoutView: View {
     @State private var editingSegmentIndex: Int? = nil
     @State private var showingFuelPlan = false
     @State private var localFuelPlan: FuelPlan? = nil
+    @State private var showingRoutePlanner = false
 
     var body: some View {
         NavigationStack {
@@ -94,6 +95,53 @@ struct AddPlannedWorkoutView: View {
                     } footer: {
                         if vm.formRunSegments.isEmpty {
                             Text("Break this run into structured parts — warm-up, tempo, repeats, cooldown, etc.")
+                        }
+                    }
+                }
+
+                // MARK: Route
+                if vm.formType == .running {
+                    Section {
+                        if vm.formRouteWaypoints.count >= 2 {
+                            RoutePreviewMap(polyline: vm.formRoutePolyline, height: 160)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+
+                            HStack {
+                                Label(
+                                    String(format: "%.2f mi route", vm.formRouteDistanceMiles),
+                                    systemImage: "map"
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                                Spacer()
+
+                                Button("Edit") {
+                                    showingRoutePlanner = true
+                                }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+
+                                Button("Remove", role: .destructive) {
+                                    vm.formRouteWaypoints = []
+                                    vm.formRoutePolyline = []
+                                    vm.formRouteDistanceMiles = 0
+                                }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+                            }
+                        } else {
+                            Button {
+                                showingRoutePlanner = true
+                            } label: {
+                                Label("Plan Route on Map", systemImage: "map")
+                            }
+                        }
+                    } header: {
+                        Text("Route")
+                    } footer: {
+                        if vm.formRouteWaypoints.isEmpty {
+                            Text("Tap to draw a running route on Apple Maps. Distance will be calculated automatically.")
                         }
                     }
                 }
@@ -241,6 +289,52 @@ struct AddPlannedWorkoutView: View {
                     onDelete: { vm.formRunSegments.remove(at: idx) }
                 )
             }
+            // Route planner
+            #if os(macOS)
+            .sheet(isPresented: $showingRoutePlanner) {
+                RoutePlannerView(
+                    existingWaypoints: vm.formRouteWaypoints,
+                    existingPolyline: vm.formRoutePolyline,
+                    existingDistanceMiles: vm.formRouteDistanceMiles,
+                    onSave: { waypoints, polyline, miles in
+                        vm.formRouteWaypoints = waypoints
+                        vm.formRoutePolyline = polyline
+                        vm.formRouteDistanceMiles = miles
+                        // Auto-populate distance from route if not manually set and no segments
+                        if !vm.formIsDistanceManuallySet && vm.formRunSegments.isEmpty && miles > 0 {
+                            vm.formDistanceMiles = miles
+                        }
+                    },
+                    onClear: {
+                        vm.formRouteWaypoints = []
+                        vm.formRoutePolyline = []
+                        vm.formRouteDistanceMiles = 0
+                    }
+                )
+            }
+            #else
+            .fullScreenCover(isPresented: $showingRoutePlanner) {
+                RoutePlannerView(
+                    existingWaypoints: vm.formRouteWaypoints,
+                    existingPolyline: vm.formRoutePolyline,
+                    existingDistanceMiles: vm.formRouteDistanceMiles,
+                    onSave: { waypoints, polyline, miles in
+                        vm.formRouteWaypoints = waypoints
+                        vm.formRoutePolyline = polyline
+                        vm.formRouteDistanceMiles = miles
+                        // Auto-populate distance from route if not manually set and no segments
+                        if !vm.formIsDistanceManuallySet && vm.formRunSegments.isEmpty && miles > 0 {
+                            vm.formDistanceMiles = miles
+                        }
+                    },
+                    onClear: {
+                        vm.formRouteWaypoints = []
+                        vm.formRoutePolyline = []
+                        vm.formRouteDistanceMiles = 0
+                    }
+                )
+            }
+            #endif
             // Fuel plan editor
             .sheet(isPresented: $showingFuelPlan) {
                 FuelPlanView(fuelPlan: localFuelPlan) { plan in
@@ -297,6 +391,9 @@ struct AddPlannedWorkoutView: View {
             intensityLevel: vm.formIntensity
         )
         modelContext.insert(workout)
+        workout.routeWaypoints = vm.formRouteWaypoints
+        workout.routePolyline = vm.formRoutePolyline
+        workout.routeDistanceMiles = vm.formRouteDistanceMiles
         workout.fuelPlan = localFuelPlan
 
         Task { @MainActor in
@@ -321,6 +418,9 @@ struct AddPlannedWorkoutView: View {
         workout.runCategory = vm.formRunCategory
         workout.strengthType = vm.formStrengthType
         workout.runSegments = vm.formRunSegments
+        workout.routeWaypoints = vm.formRouteWaypoints
+        workout.routePolyline = vm.formRoutePolyline
+        workout.routeDistanceMiles = vm.formRouteDistanceMiles
         workout.notes = vm.formNotes
         workout.postRunStrides = vm.formPostRunStrides
         workout.intensityLevel = vm.formIntensity

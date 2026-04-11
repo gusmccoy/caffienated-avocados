@@ -729,6 +729,12 @@ struct PlannedWorkoutRow: View {
                     }
                     .padding(.top, 2)
                 }
+
+                // Route preview
+                if workout.workoutType == .running && workout.hasRoute {
+                    RoutePreviewMap(polyline: workout.routePolyline, height: 100)
+                        .padding(.top, 4)
+                }
             }
 
             Spacer()

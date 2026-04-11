@@ -85,6 +85,9 @@ final class PlanViewModel {
     var formRunCategory: RunCategory = .none
     var formRunSegments: [PlannedRunSegment] = []
     var formPostRunStrides: Bool = false
+    var formRouteWaypoints: [RouteWaypoint] = []
+    var formRoutePolyline: [RouteCoordinate] = []
+    var formRouteDistanceMiles: Double = 0
     var calendarAuthorizationDenied: Bool = false
 
     var formDurationSeconds: Int { formHours * 3600 + formMinutes * 60 + formSeconds }
@@ -136,6 +139,9 @@ final class PlanViewModel {
         formStrengthType = .unspecified
         formRunSegments = []
         formPostRunStrides = false
+        formRouteWaypoints = []
+        formRoutePolyline = []
+        formRouteDistanceMiles = 0
         formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
@@ -158,6 +164,9 @@ final class PlanViewModel {
         formStrengthType = workout.strengthType
         formRunSegments = workout.runSegments
         formPostRunStrides = workout.postRunStrides
+        formRouteWaypoints = workout.routeWaypoints
+        formRoutePolyline = workout.routePolyline
+        formRouteDistanceMiles = workout.routeDistanceMiles
         // If stored distance differs from segment total, the user overrode it manually
         formIsDistanceManuallySet = workout.plannedDistanceMiles > 0 && !workout.distanceIsFromSegments
         calendarAuthorizationDenied = false
@@ -179,6 +188,9 @@ final class PlanViewModel {
         formStrengthType = .unspecified
         formRunSegments = []
         formPostRunStrides = false
+        formRouteWaypoints = []
+        formRoutePolyline = []
+        formRouteDistanceMiles = 0
         formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
     }
