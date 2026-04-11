@@ -110,6 +110,29 @@ Target any iOS 17+ simulator/device or macOS 14+ (Designed for iPad / native Mac
 
 The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are constrained to 640 pt and centered, with `.formStyle(.grouped)` for an iOS-style card appearance. Wheel pickers are replaced with menu pickers on macOS.
 
+## Planned Features
+
+### Profile Tab
+- Athlete's first name and display preferences
+- "An Avocado since" date — tracks when the athlete started using the app
+- Personal Records for standard distances (1 Mile · 5K · 10K · Half Marathon · Marathon) with two modes:
+  - **All-Time** — best performance ever logged
+  - **Dynamic Milestones** — user-defined eras (e.g. Post College, Post Pregnancy, After Injury) each with their own PR set
+
+### Strava Splits Integration
+- Read per-mile and per-km splits from synced Strava activities
+- Use splits data to automatically derive Year-to-Date Personal Records for each standard distance without requiring a dedicated race effort
+
+### Nutrition & Fuel Planning
+- Attach fuel and nutrition plans to planned workouts and races
+- Log pre-workout, mid-workout (gels, chews, fluids), and post-workout nutrition targets
+- Track actual vs. planned fuel intake alongside activity data
+
+### Enhanced Notifications
+- Configurable reminders for fuel timing, meal windows, sleep targets, and hydration
+- Rule-based triggers (e.g. "remind me 90 min before a long run to eat", "alert when sleep < 7 hours before a workout day")
+- Per-notification snooze and delivery preferences
+
 ## Architecture Notes
 
 - **SwiftData enum safety** — all post-migration enum properties are stored as `String` raw values with computed accessors (e.g. `runCategoryRaw: String` + `var runCategory: RunCategory`). This prevents `Optional<Any>` cast crashes during lightweight migration.
