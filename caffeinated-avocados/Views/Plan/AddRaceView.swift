@@ -9,6 +9,7 @@ struct AddRaceView: View {
     @Environment(\.dismiss) private var dismiss
 
     var editingRace: Race? = nil
+    let calendarService: CalendarService
 
     @State private var name: String = ""
     @State private var date: Date = Calendar.current.date(byAdding: .month, value: 3, to: .now) ?? .now
@@ -120,6 +121,7 @@ struct AddRaceView: View {
 
     private func save() {
         if let race = editingRace {
+            let oldEventId = race.calendarEventIdentifier
             race.name = name.trimmingCharacters(in: .whitespaces)
             race.date = date
             race.raceDistance = raceDistance
@@ -127,6 +129,14 @@ struct AddRaceView: View {
             race.location = location
             race.goalTimeSeconds = goalTimeSeconds
             race.notes = notes
+            Task { @MainActor in
+                if let id = oldEventId {
+                    try? await calendarService.deleteEvent(identifier: id)
+                }
+                if let eventId = try? await calendarService.createEvent(for: race) {
+                    race.calendarEventIdentifier = eventId
+                }
+            }
         } else {
             let race = Race(
                 name: name.trimmingCharacters(in: .whitespaces),
@@ -138,6 +148,11 @@ struct AddRaceView: View {
                 notes: notes
             )
             modelContext.insert(race)
+            Task { @MainActor in
+                if let eventId = try? await calendarService.createEvent(for: race) {
+                    race.calendarEventIdentifier = eventId
+                }
+            }
         }
         dismiss()
     }

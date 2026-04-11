@@ -50,6 +50,7 @@ final class Race {
     var goalTimeSeconds: Int?           // nil = no goal time set
     var notes: String
     var isCompleted: Bool = false
+    var calendarEventIdentifier: String?
     var createdAt: Date
 
     init(

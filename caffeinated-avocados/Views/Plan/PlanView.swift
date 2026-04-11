@@ -36,7 +36,7 @@ struct PlanView: View {
                     }
 
                     WeekNavigationHeader(vm: vm)
-                    WeekMileageCard(miles: vm.totalPlannedMiles(from: weekWorkouts))
+                    WeekMileageCard(miles: vm.totalPlannedMiles(from: weekWorkouts) + weekRaceMiles)
 
                     ForEach(vm.weekDays, id: \.self) { day in
                         DaySection(
@@ -98,16 +98,24 @@ struct PlanView: View {
                 AddPlannedWorkoutView(vm: vm, calendarService: calendarService)
             }
             .sheet(isPresented: $showingAddRace) {
-                AddRaceView()
+                AddRaceView(calendarService: calendarService)
             }
             .sheet(item: $editingRace) { race in
-                AddRaceView(editingRace: race)
+                AddRaceView(editingRace: race, calendarService: calendarService)
             }
         }
     }
 
     private var weekWorkouts: [PlannedWorkout] {
         vm.workoutsInCurrentWeek(from: allPlanned)
+    }
+
+    private var weekRaceMiles: Double {
+        let start = vm.weekStart.startOfDay
+        let end = Calendar.current.date(byAdding: .day, value: 7, to: start) ?? start
+        return allRaces
+            .filter { $0.date >= start && $0.date < end }
+            .reduce(0) { $0 + $1.distanceMiles }
     }
 
     private var shouldShowPlanningBanner: Bool {
@@ -130,6 +138,9 @@ struct PlanView: View {
     @Environment(\.modelContext) private var modelContext
 
     private func deleteRace(_ race: Race) {
+        if let id = race.calendarEventIdentifier {
+            Task { try? await calendarService.deleteEvent(identifier: id) }
+        }
         modelContext.delete(race)
     }
 }

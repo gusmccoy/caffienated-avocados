@@ -66,6 +66,26 @@ final class CalendarService {
         }
     }
 
+    /// Creates an all-day calendar event for a race and returns the eventIdentifier.
+    func createEvent(for race: Race) async throws -> String {
+        guard await requestAccessIfNeeded() else { throw CalendarError.notAuthorized }
+
+        let event = EKEvent(eventStore: store)
+        event.title = race.name
+        event.isAllDay = true
+        event.startDate = race.date
+        event.endDate = race.date
+        event.notes = buildNotes(for: race)
+        event.calendar = store.defaultCalendarForNewEvents
+
+        do {
+            try store.save(event, span: .thisEvent)
+            return event.eventIdentifier
+        } catch {
+            throw CalendarError.saveFailed(error)
+        }
+    }
+
     // MARK: - Delete
 
     /// Deletes a calendar event by its stored identifier. Treats a missing event as success.
@@ -80,6 +100,19 @@ final class CalendarService {
     }
 
     // MARK: - Helpers
+
+    private func buildNotes(for race: Race) -> String {
+        var parts: [String] = ["Distance: \(race.raceDistance.rawValue)"]
+        if !race.location.isEmpty { parts.append("Location: \(race.location)") }
+        if let secs = race.goalTimeSeconds {
+            let h = secs / 3600
+            let m = (secs % 3600) / 60
+            let s = secs % 60
+            parts.append(String(format: "Goal Time: %d:%02d:%02d", h, m, s))
+        }
+        if !race.notes.isEmpty { parts.append(race.notes) }
+        return parts.joined(separator: "\n")
+    }
 
     private func buildNotes(for workout: PlannedWorkout) -> String {
         var parts: [String] = []
