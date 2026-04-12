@@ -47,6 +47,13 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Plan matching threshold** — tune how close an activity needs to be to count as completing a planned workout
 - **Export** — coming soon
 
+### Profile
+Personal records, training history, and injury tracking in one place.
+
+- **Athlete identity** — first name and "An Avocado since" date
+- **Personal Records** — 1 Mile, 2 Mile, 5K, 10K, Half Marathon, Marathon; All-Time / YTD / Milestone modes
+- **Injury & Comeback Tracker** — log injuries and extended breaks; track recovery phase (Resting → Walking → Easy Running → Building Back → Full Training); log comeback milestones with dates and notes; workout-day notifications are silenced automatically while an injury is active (race countdowns continue); optionally creates a linked "Post-Injury" PR Milestone era on the spot
+
 ## Project Structure
 
 ```
@@ -111,12 +118,6 @@ Target any iOS 17+ simulator/device or macOS 14+ (Designed for iPad / native Mac
 The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are constrained to 640 pt and centered, with `.formStyle(.grouped)` for an iOS-style card appearance. Wheel pickers are replaced with menu pickers on macOS.
 
 ## Planned Features
-
-### Injury & Comeback Tracker
-- Mark yourself as injured or on an extended break — silences non-essential notifications while in that status
-- Log return-to-running milestones (cleared to walk, first easy run, back to full training)
-- Adjust plan suggestions and volume recommendations based on comeback phase
-- Tie into Dynamic Milestones so PRs can be tracked in a "Post-Injury" era
 
 ### Trend Dashboard
 - Line graphs for weekly mileage, average pace, and total volume over time
