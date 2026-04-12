@@ -20,8 +20,5 @@
 	<!-- Ubiquity key-value store (used internally by NSPersistentCloudKitContainer) -->
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
 	<string>$(TeamIdentifierPrefix)io.mccoy.caffeinated-avocados</string>
-	<!-- Silent push notifications drive CloudKit sync -->
-	<key>aps-environment</key>
-	<string>development</string>
 </dict>
 </plist>
