@@ -17,6 +17,13 @@ A personal fitness tracking app for iOS and macOS — log runs, strength session
 ### Dashboard
 Weekly summary of workouts, total time, and mileage with a week-over-week delta indicator. Quick-add buttons for all activity types and a recent activity feed.
 
+**Trends** (accessible via toolbar) — historical charts with a 1M / 3M / 6M / 1Y range picker:
+- **Weekly Mileage** — bar chart of running miles per week
+- **Average Pace** — line chart of average running pace per activity (axis inverted so faster = up)
+- **Weekly Volume** — total training minutes per week across all activity types
+- **Intensity Distribution** — donut chart of Easy / Moderate / Hard / Max Effort workouts in the selected window
+- **W-o-W delta cards** — this-week vs. last-week comparison for miles, workout count, and total time
+
 ### Activities
 Unified tab for all activity types with a segmented picker (Run · Strength · Cross Train).
 
@@ -119,6 +126,10 @@ The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are c
 - Adjust plan suggestions and volume recommendations based on comeback phase
 - Tie into Dynamic Milestones so PRs can be tracked in a "Post-Injury" era
 
+### Workout Templates
+- Save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run")
+- Clone templates directly into the weekly plan with one tap
+- Manage and organize a personal template library
 ### Trend Dashboard
 - Line graphs for weekly mileage, average pace, and total volume over time
 - Heart rate zone distribution across recent activities
