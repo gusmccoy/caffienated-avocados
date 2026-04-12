@@ -38,6 +38,7 @@ struct McCoyFitnessApp: App {
             PRMilestone.self,
             NotificationRule.self,
             SavedRoute.self,
+            InjuryRecord.self,
             WorkoutTemplate.self,
         ])
 
@@ -123,10 +124,13 @@ struct McCoyFitnessApp: App {
                     let rules    = (try? ctx.fetch(FetchDescriptor<NotificationRule>())) ?? []
                     let workouts = (try? ctx.fetch(FetchDescriptor<PlannedWorkout>())) ?? []
                     let races    = (try? ctx.fetch(FetchDescriptor<Race>())) ?? []
+                    let injuries = (try? ctx.fetch(FetchDescriptor<InjuryRecord>())) ?? []
+                    let isInjured = injuries.contains { $0.isActive }
                     EnhancedNotificationService.scheduleNotifications(
                         rules: rules,
                         plannedWorkouts: workouts,
-                        races: races
+                        races: races,
+                        isInjured: isInjured
                     )
                 }
         }
