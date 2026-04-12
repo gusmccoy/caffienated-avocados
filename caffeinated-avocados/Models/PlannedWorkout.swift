@@ -123,10 +123,12 @@ final class PlannedWorkout {
     var id: UUID
     /// Stored as startOfDay so grouping by day is a simple equality check.
     var date: Date
-    var workoutType: WorkoutType
-    var title: String
+    // Property-level defaults ensure CloudKit-synced records can be reconstructed
+    // by SwiftData without calling init() when schema evolves across app versions.
+    var workoutType: WorkoutType = .running
+    var title: String = ""
     /// Always stored in miles (0 for strength workouts or when not set).
-    var plannedDistanceMiles: Double
+    var plannedDistanceMiles: Double = 0
     /// Optional planned duration in seconds (0 = not set).
     var plannedDurationSeconds: Int = 0
     // MARK: - Enum-backed String storage
@@ -195,7 +197,7 @@ final class PlannedWorkout {
     var postRunStrides: Bool = false
     /// Optional fuel and nutrition plan for this workout.
     @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
-    var intensityLevel: IntensityLevel
+    var intensityLevel: IntensityLevel = .moderate
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
     /// True when an imported activity matched this planned workout within the configured threshold.
