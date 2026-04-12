@@ -37,6 +37,7 @@ struct McCoyFitnessApp: App {
             PersonalRecord.self,
             PRMilestone.self,
             NotificationRule.self,
+            SavedRoute.self,
         ])
 
         // Models stored on-device only
