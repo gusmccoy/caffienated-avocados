@@ -179,6 +179,7 @@ private struct AthleteDaySection: View {
     let relationship: PlannerRelationship
     let calendarService: CalendarService
     @Environment(\.modelContext) private var modelContext
+    private let plannerVM = PlannerViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -252,11 +253,14 @@ private struct AthleteDaySection: View {
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
+        let workoutId = workout.id.uuidString
         let identifier = workout.calendarEventIdentifier
         modelContext.delete(workout)
         if let id = identifier {
             Task { try? await calendarService.deleteEvent(identifier: id) }
         }
+        // Soft-delete from CloudKit so athlete removes it on next sync
+        plannerVM.deleteWorkoutFromCloud(workoutId: workoutId)
     }
 }
 
@@ -274,6 +278,7 @@ struct CoachAddPlannedWorkoutView: View {
 
     @State private var addingSegment = false
     @State private var editingSegmentIndex: Int? = nil
+    private let plannerVM = PlannerViewModel()
 
     var body: some View {
         NavigationStack {
@@ -450,6 +455,13 @@ struct CoachAddPlannedWorkoutView: View {
         workout.createdByPlannerRelationshipId = relationship.id.uuidString
         workout.plannerDisplayName = relationship.plannerDisplayName
         modelContext.insert(workout)
+
+        // Push to CloudKit so the athlete can pull it
+        plannerVM.pushWorkoutToCloud(
+            workout,
+            inviteCode: relationship.inviteCode,
+            plannerDisplayName: relationship.plannerDisplayName
+        )
     }
 
     private func updateExisting(_ workout: PlannedWorkout) {
@@ -471,6 +483,13 @@ struct CoachAddPlannedWorkoutView: View {
         Task { @MainActor in
             if let id = oldEventId { try? await calendarService.deleteEvent(identifier: id) }
         }
+
+        // Push update to CloudKit
+        plannerVM.pushWorkoutToCloud(
+            workout,
+            inviteCode: relationship.inviteCode,
+            plannerDisplayName: relationship.plannerDisplayName
+        )
     }
 }
 

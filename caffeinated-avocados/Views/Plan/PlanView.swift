@@ -6,6 +6,7 @@ import SwiftData
 
 struct PlanView: View {
     @State private var vm = PlanViewModel()
+    @State private var plannerVM = PlannerViewModel()
     private let calendarService = CalendarService()
 
     @Query(sort: \PlannedWorkout.date, order: .forward)
@@ -13,6 +14,8 @@ struct PlanView: View {
 
     @Query(sort: \Race.date, order: .forward)
     private var allRaces: [Race]
+
+    @Query private var allRelationships: [PlannerRelationship]
 
     @State private var showingAddRace = false
     @State private var editingRace: Race? = nil
@@ -102,6 +105,15 @@ struct PlanView: View {
             }
             .sheet(item: $editingRace) { race in
                 AddRaceView(editingRace: race, calendarService: calendarService)
+            }
+            .task {
+                // Athlete: pull coach-created workouts from CloudKit
+                let athleteRelationships = allRelationships.filter {
+                    $0.currentUserIsAthlete && $0.status == .accepted
+                }
+                for rel in athleteRelationships {
+                    await plannerVM.syncCoachWorkouts(forRelationship: rel, modelContext: modelContext)
+                }
             }
         }
     }

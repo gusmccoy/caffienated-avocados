@@ -112,6 +112,9 @@ struct SettingsView: View {
                 }
             }
 
+            // Experimental
+            ExperimentalSettingsSection()
+
             // About
             Section("About") {
                 LabeledContent("Version") {
@@ -394,6 +397,7 @@ struct PlannerSettingsSection: View {
     @Bindable var plannerVM: PlannerViewModel
     let allRelationships: [PlannerRelationship]
     let modelContext: ModelContext
+    @State private var pollTimer: Timer? = nil
 
     // Athlete side: pending outgoing invites
     private var pendingInvites: [PlannerRelationship] {
@@ -470,7 +474,7 @@ struct PlannerSettingsSection: View {
             InviteCodeSheet(plannerVM: plannerVM, modelContext: modelContext)
         }
         .sheet(isPresented: $plannerVM.isShowingAcceptSheet) {
-            AcceptInviteSheet(plannerVM: plannerVM, allRelationships: allRelationships, modelContext: modelContext)
+            AcceptInviteSheet(plannerVM: plannerVM, modelContext: modelContext)
         }
     }
 
@@ -506,6 +510,15 @@ struct PlannerSettingsSection: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+
+            Button {
+                Task { await plannerVM.checkInviteAccepted(invite, modelContext: modelContext) }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.blue)
+
             Button {
                 plannerVM.isShowingInviteSheet = true
                 plannerVM.generatedInviteCode = invite.inviteCode
@@ -521,6 +534,10 @@ struct PlannerSettingsSection: View {
                 Image(systemName: "xmark.circle")
             }
             .font(.subheadline)
+        }
+        .task {
+            // Auto-check invite status when this row appears
+            await plannerVM.checkInviteAccepted(invite, modelContext: modelContext)
         }
     }
 
@@ -616,7 +633,6 @@ private struct InviteCodeSheet: View {
 
 private struct AcceptInviteSheet: View {
     @Bindable var plannerVM: PlannerViewModel
-    let allRelationships: [PlannerRelationship]
     let modelContext: ModelContext
     @Environment(\.dismiss) private var dismiss
 
@@ -670,25 +686,175 @@ private struct AcceptInviteSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Accept") { accept() }
-                        .disabled(plannerVM.acceptCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    Button {
+                        accept()
+                    } label: {
+                        if plannerVM.isLoading {
+                            ProgressView()
+                        } else {
+                            Text("Accept")
+                        }
+                    }
+                    .disabled(plannerVM.acceptCodeInput.trimmingCharacters(in: .whitespaces).isEmpty || plannerVM.isLoading)
                 }
             }
         }
     }
 
     private func accept() {
-        do {
-            try plannerVM.acceptInvite(
-                code: plannerVM.acceptCodeInput,
-                plannerDisplayName: myName,
-                allRelationships: allRelationships,
-                modelContext: modelContext
-            )
-            dismiss()
-        } catch {
-            plannerVM.acceptError = error.localizedDescription
+        plannerVM.isLoading = true
+        plannerVM.acceptError = nil
+        Task {
+            do {
+                try await plannerVM.acceptInvite(
+                    code: plannerVM.acceptCodeInput,
+                    plannerDisplayName: myName,
+                    modelContext: modelContext
+                )
+                await MainActor.run { dismiss() }
+            } catch {
+                await MainActor.run {
+                    plannerVM.acceptError = error.localizedDescription
+                    plannerVM.isLoading = false
+                }
+            }
         }
+    }
+}
+
+// MARK: - Experimental Settings Section
+
+private struct ExperimentalSettingsSection: View {
+    @AppStorage("experimentalFeaturesEnabled") private var experimentalFeaturesEnabled: Bool = false
+
+    var body: some View {
+        Section {
+            Toggle(isOn: $experimentalFeaturesEnabled) {
+                Label("Experimental Features", systemImage: "flask.fill")
+            }
+            .tint(.purple)
+
+            if experimentalFeaturesEnabled {
+                NavigationLink {
+                    AIAssistantSettingsView()
+                } label: {
+                    HStack {
+                        Label("Gear & Race Finder", systemImage: "sparkles")
+                        Spacer()
+                        if AIKeychain.isConfigured {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.subheadline)
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Experimental")
+        } footer: {
+            Text("Enable early-access features that are still in development. These may change or be removed in future versions.")
+        }
+    }
+}
+
+// MARK: - AI Assistant Settings View
+
+struct AIAssistantSettingsView: View {
+    @State private var apiKeyInput: String = ""
+    @State private var isSaved: Bool = false
+    @State private var showingKey: Bool = false
+
+    private var savedKey: String? { AIKeychain.load() }
+
+    var body: some View {
+        Form {
+            Section {
+                if let key = savedKey {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("API Key Saved")
+                                .font(.subheadline.weight(.medium))
+                            Text(maskedKey(key))
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Remove", role: .destructive) {
+                            AIKeychain.delete()
+                            apiKeyInput = ""
+                            isSaved = false
+                        }
+                        .font(.caption)
+                    }
+                } else {
+                    HStack {
+                        if showingKey {
+                            TextField("AIza...", text: $apiKeyInput)
+                                .autocorrectionDisabled()
+                                #if os(iOS)
+                                .textInputAutocapitalization(.never)
+                                #endif
+                        } else {
+                            SecureField("AIza...", text: $apiKeyInput)
+                        }
+                        Button {
+                            showingKey.toggle()
+                        } label: {
+                            Image(systemName: showingKey ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Button {
+                        let trimmed = apiKeyInput.trimmingCharacters(in: .whitespaces)
+                        guard !trimmed.isEmpty else { return }
+                        AIKeychain.save(trimmed)
+                        apiKeyInput = ""
+                        isSaved = true
+                    } label: {
+                        Label(isSaved ? "Saved!" : "Save API Key", systemImage: isSaved ? "checkmark" : "key.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.purple)
+                    .disabled(apiKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } header: {
+                Text("Google AI API Key")
+            } footer: {
+                Text("Get a free API key at aistudio.google.com. No credit card required — Gemini 2.0 Flash includes a generous free tier. You are billed directly by Google only if you exceed free limits.")
+            }
+
+            Section("What It Can Help With") {
+                Label("Search for running shoes & gear", systemImage: "figure.run")
+                Label("Find races and running events", systemImage: "flag.checkered")
+            }
+
+            Section {
+                Label("The assistant cannot access your workouts, health data, or Strava activities.", systemImage: "lock.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Privacy")
+            }
+        }
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
+        .navigationTitle("Gear & Race Finder")
+        #if !os(macOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+
+    private func maskedKey(_ key: String) -> String {
+        guard key.count > 8 else { return String(repeating: "•", count: key.count) }
+        let prefix = String(key.prefix(10))
+        let suffix = String(key.suffix(4))
+        return "\(prefix)...\(suffix)"
     }
 }
 
