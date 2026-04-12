@@ -16,6 +16,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     profileHeaderCard
+                    InjuryStatusCard()
                     prSectionCard
                 }
                 .padding()

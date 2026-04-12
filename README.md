@@ -23,6 +23,12 @@ Weekly summary of workouts, total time, and mileage with a week-over-week delta 
 - **Volume spike warning** — current week already 30%+ above average with days remaining
 - **Comeback ramp warning** — rapid mileage increase detected after a ≥2-week running gap
 - **Consistency acknowledgement** — positive reinforcement when training has been steady for 4+ weeks (shown only when no warnings apply)
+**Trends** (accessible via toolbar) — historical charts with a 1M / 3M / 6M / 1Y range picker:
+- **Weekly Mileage** — bar chart of running miles per week
+- **Average Pace** — line chart of average running pace per activity (axis inverted so faster = up)
+- **Weekly Volume** — total training minutes per week across all activity types
+- **Intensity Distribution** — donut chart of Easy / Moderate / Hard / Max Effort workouts in the selected window
+- **W-o-W delta cards** — this-week vs. last-week comparison for miles, workout count, and total time
 
 ### Activities
 Unified tab for all activity types with a segmented picker (Run · Strength · Cross Train).
@@ -45,6 +51,7 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Calendar export** — planned workouts can be pushed to Apple Calendar
 - **Copy last week** — duplicate the previous week's plan with one tap
 - **Auto-matching** — synced Strava activities are automatically matched against planned workouts and marked complete
+- **Workout Templates** — save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run"); load templates directly into the add-workout form; manage the template library from the Plan tab toolbar
 
 ### Settings
 - **Strava** — OAuth connect / disconnect, manual sync, undo when a Strava import overrides a manual entry
@@ -53,6 +60,13 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Default running pace** — set a MM:SS /mi pace used to estimate distance for planned runs that have duration but no explicit distance (shown as *~X mi* in the plan row)
 - **Plan matching threshold** — tune how close an activity needs to be to count as completing a planned workout
 - **Export** — coming soon
+
+### Profile
+Personal records, training history, and injury tracking in one place.
+
+- **Athlete identity** — first name and "An Avocado since" date
+- **Personal Records** — 1 Mile, 2 Mile, 5K, 10K, Half Marathon, Marathon; All-Time / YTD / Milestone modes
+- **Injury & Comeback Tracker** — log injuries and extended breaks; track recovery phase (Resting → Walking → Easy Running → Building Back → Full Training); log comeback milestones with dates and notes; workout-day notifications are silenced automatically while an injury is active (race countdowns continue); optionally creates a linked "Post-Injury" PR Milestone era on the spot
 
 ## Project Structure
 
@@ -125,15 +139,14 @@ The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are c
 - Adjust plan suggestions and volume recommendations based on comeback phase
 - Tie into Dynamic Milestones so PRs can be tracked in a "Post-Injury" era
 
-### Trend Dashboard
-- Line graphs for weekly mileage, average pace, and total volume over time
-- Heart rate zone distribution across recent activities
-- Week-over-week and month-over-month deltas to surface peaking, fatigue, and consistency patterns
-
 ### Workout Templates
 - Save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run")
 - Clone templates directly into the weekly plan with one tap
 - Manage and organize a personal template library
+### Trend Dashboard
+- Line graphs for weekly mileage, average pace, and total volume over time
+- Heart rate zone distribution across recent activities
+- Week-over-week and month-over-month deltas to surface peaking, fatigue, and consistency patterns
 
 ## Architecture Notes
 

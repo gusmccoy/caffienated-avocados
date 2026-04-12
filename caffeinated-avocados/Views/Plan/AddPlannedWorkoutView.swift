@@ -14,6 +14,9 @@ struct AddPlannedWorkoutView: View {
     @State private var showingFuelPlan = false
     @State private var localFuelPlan: FuelPlan? = nil
     @State private var showingRoutePlanner = false
+    @State private var showingTemplatePicker = false
+    @State private var showingSaveAsTemplate = false
+    @State private var newTemplateName = ""
 
     var body: some View {
         NavigationStack {
@@ -274,6 +277,21 @@ struct AddPlannedWorkoutView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(vm.isEditing ? "Update" : "Save") { save() }
                 }
+                ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        showingTemplatePicker = true
+                    } label: {
+                        Label("Load Template", systemImage: "doc.text")
+                    }
+                }
+                ToolbarItem(placement: .secondaryAction) {
+                    Button {
+                        newTemplateName = vm.formTitle.isEmpty ? vm.formType.rawValue : vm.formTitle
+                        showingSaveAsTemplate = true
+                    } label: {
+                        Label("Save as Template", systemImage: "square.and.arrow.down")
+                    }
+                }
             }
             // Add new segment
             .sheet(isPresented: $addingSegment) {
@@ -346,6 +364,22 @@ struct AddPlannedWorkoutView: View {
             }
             .onAppear {
                 localFuelPlan = vm.editingWorkout?.fuelPlan
+            }
+            // Template picker
+            .sheet(isPresented: $showingTemplatePicker) {
+                TemplateLibraryView { template in
+                    vm.applyTemplate(template)
+                }
+            }
+            // Save as template
+            .alert("Save as Template", isPresented: $showingSaveAsTemplate) {
+                TextField("Template name", text: $newTemplateName)
+                Button("Save") {
+                    vm.saveFormAsTemplate(name: newTemplateName, modelContext: modelContext)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Give this workout a name so you can reuse it later.")
             }
         }
     }

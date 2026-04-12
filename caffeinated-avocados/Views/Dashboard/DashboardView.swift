@@ -58,6 +58,13 @@ struct DashboardView: View {
                             .font(.title2)
                     }
                 }
+                ToolbarItem(placement: .secondaryAction) {
+                    NavigationLink {
+                        TrendDashboardView()
+                    } label: {
+                        Label("Trends", systemImage: "chart.line.uptrend.xyaxis")
+                    }
+                }
             }
             .sheet(isPresented: $showingAddWorkout) {
                 AddWorkoutView()

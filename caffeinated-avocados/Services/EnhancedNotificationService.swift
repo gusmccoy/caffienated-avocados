@@ -17,10 +17,13 @@ struct EnhancedNotificationService {
 
     /// Re-evaluates all enabled rules against this week's plan and replaces
     /// any previously-scheduled rule-based notifications.
+    /// When `isInjured` is true, workout-day reminders (meal, hydration, fuel, long-run gel)
+    /// are silenced — only race-countdown reminders continue.
     static func scheduleNotifications(
         rules: [NotificationRule],
         plannedWorkouts: [PlannedWorkout],
-        races: [Race]
+        races: [Race],
+        isInjured: Bool = false
     ) {
         let center = UNUserNotificationCenter.current()
 
@@ -36,6 +39,10 @@ struct EnhancedNotificationService {
             let weekEnd = calendar.date(byAdding: .day, value: 14, to: now) ?? now
 
             for rule in rules where rule.isEnabled {
+                // Skip workout-day reminders while the athlete is injured/on break.
+                // Race countdowns still fire so they don't miss upcoming races.
+                if isInjured && rule.type != .upcomingRace { continue }
+
                 switch rule.type {
 
                 case .preWorkoutMeal, .hydration, .fuelPlan:
