@@ -195,6 +195,53 @@ final class PlanViewModel {
         calendarAuthorizationDenied = false
     }
 
+    // MARK: - Templates
+
+    /// Populates the add-workout form from a saved template.
+    func applyTemplate(_ template: WorkoutTemplate) {
+        formType = template.workoutType
+        formTitle = template.title
+        formDistanceMiles = template.plannedDistanceMiles
+        let d = template.plannedDurationSeconds
+        formHours   = d / 3600
+        formMinutes = (d % 3600) / 60
+        formSeconds = d % 60
+        formNotes = template.notes
+        formIntensity = template.intensityLevel
+        formCrossTrainingActivityType = template.crossTrainingActivityType
+        formRunCategory = template.runCategory
+        formStrengthType = template.strengthType
+        formRunSegments = template.runSegments
+        formPostRunStrides = template.postRunStrides
+        formRouteWaypoints = template.routeWaypoints
+        formRoutePolyline = template.routePolyline
+        formRouteDistanceMiles = template.routeDistanceMiles
+        formIsDistanceManuallySet = template.plannedDistanceMiles > 0 && template.runSegments.isEmpty
+        template.usageCount += 1
+    }
+
+    /// Saves the current form state as a new WorkoutTemplate.
+    func saveFormAsTemplate(name: String, modelContext: ModelContext) {
+        let t = WorkoutTemplate(
+            templateName: name,
+            workoutType: formType,
+            title: formTitle,
+            plannedDistanceMiles: formShowsDistance ? formEffectiveDistanceMiles : 0,
+            plannedDurationSeconds: formDurationSeconds,
+            strengthType: formStrengthType,
+            crossTrainingActivityType: formCrossTrainingActivityType,
+            runCategory: formRunCategory,
+            intensityLevel: formIntensity,
+            runSegments: formRunSegments,
+            notes: formNotes,
+            postRunStrides: formPostRunStrides,
+            routeWaypoints: formRouteWaypoints,
+            routePolyline: formRoutePolyline,
+            routeDistanceMiles: formRouteDistanceMiles
+        )
+        modelContext.insert(t)
+    }
+
     // MARK: - Plan Completion
 
     /// Creates a stub WorkoutSession and marks the plan as completed manually.

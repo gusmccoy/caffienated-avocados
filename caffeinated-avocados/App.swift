@@ -39,6 +39,7 @@ struct McCoyFitnessApp: App {
             NotificationRule.self,
             SavedRoute.self,
             InjuryRecord.self,
+            WorkoutTemplate.self,
         ])
 
         // Models stored on-device only
