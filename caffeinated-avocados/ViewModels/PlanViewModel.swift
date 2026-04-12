@@ -279,14 +279,22 @@ final class PlanViewModel {
                 }
 
                 if plan.plannedDistanceMiles > 0 && importedMiles > 0 {
-                    let delta = abs(importedMiles - plan.plannedDistanceMiles) / plan.plannedDistanceMiles
-                    if delta <= threshold { matched = true }
+                    if importedMiles >= plan.plannedDistanceMiles {
+                        matched = true  // met or exceeded planned distance
+                    } else {
+                        let shortfall = (plan.plannedDistanceMiles - importedMiles) / plan.plannedDistanceMiles
+                        if shortfall <= threshold { matched = true }
+                    }
                 }
 
                 if !matched && plan.plannedDurationSeconds > 0 && session.durationSeconds > 0 {
-                    let delta = abs(Double(session.durationSeconds) - Double(plan.plannedDurationSeconds))
-                        / Double(plan.plannedDurationSeconds)
-                    if delta <= threshold { matched = true }
+                    if session.durationSeconds >= plan.plannedDurationSeconds {
+                        matched = true  // met or exceeded planned duration
+                    } else {
+                        let shortfall = (Double(plan.plannedDurationSeconds) - Double(session.durationSeconds))
+                            / Double(plan.plannedDurationSeconds)
+                        if shortfall <= threshold { matched = true }
+                    }
                 }
 
                 if matched {
