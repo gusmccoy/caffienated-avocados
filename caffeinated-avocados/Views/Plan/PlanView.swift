@@ -17,6 +17,7 @@ struct PlanView: View {
     @State private var showingAddRace = false
     @State private var editingRace: Race? = nil
     @State private var showingCopyConfirmation = false
+    @State private var showingRouteLibrary = false
 
     var body: some View {
         NavigationStack {
@@ -66,6 +67,11 @@ struct PlanView: View {
                     }
                 }
                 ToolbarItem(placement: .secondaryAction) {
+                    Button { showingRouteLibrary = true } label: {
+                        Label("Route Library", systemImage: "map")
+                    }
+                }
+                ToolbarItem(placement: .secondaryAction) {
                     Button {
                         vm.rematchAllPlannedWorkouts(modelContext: modelContext)
                     } label: {
@@ -102,6 +108,9 @@ struct PlanView: View {
             }
             .sheet(item: $editingRace) { race in
                 AddRaceView(editingRace: race, calendarService: calendarService)
+            }
+            .sheet(isPresented: $showingRouteLibrary) {
+                RoutesView()
             }
         }
     }

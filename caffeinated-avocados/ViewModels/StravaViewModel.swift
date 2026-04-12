@@ -345,17 +345,25 @@ final class StravaViewModel {
         for pw in candidates where pw.workoutType == workoutType {
             var matched = false
 
-            // Distance match
+            // Distance match — met or exceeded always passes; shortfalls checked against threshold
             if pw.plannedDistanceMiles > 0 && importedMiles > 0 {
-                let delta = abs(importedMiles - pw.plannedDistanceMiles) / pw.plannedDistanceMiles
-                if delta <= threshold { matched = true }
+                if importedMiles >= pw.plannedDistanceMiles {
+                    matched = true
+                } else {
+                    let shortfall = (pw.plannedDistanceMiles - importedMiles) / pw.plannedDistanceMiles
+                    if shortfall <= threshold { matched = true }
+                }
             }
 
-            // Duration match
+            // Duration match — met or exceeded always passes; shortfalls checked against threshold
             if !matched && pw.plannedDurationSeconds > 0 && importedDurationSeconds > 0 {
-                let delta = abs(Double(importedDurationSeconds) - Double(pw.plannedDurationSeconds))
-                    / Double(pw.plannedDurationSeconds)
-                if delta <= threshold { matched = true }
+                if importedDurationSeconds >= pw.plannedDurationSeconds {
+                    matched = true
+                } else {
+                    let shortfall = (Double(pw.plannedDurationSeconds) - Double(importedDurationSeconds))
+                        / Double(pw.plannedDurationSeconds)
+                    if shortfall <= threshold { matched = true }
+                }
             }
 
             if matched {

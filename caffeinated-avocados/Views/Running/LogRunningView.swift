@@ -10,6 +10,7 @@ struct LogRunningView: View {
 
     @State private var vm = RunningViewModel()
     @State private var stravaConflict: WorkoutSession? = nil
+    @State private var showingRoutePicker = false
     var editingSession: WorkoutSession? = nil
 
     var body: some View {
@@ -72,7 +73,17 @@ struct LogRunningView: View {
 
                 // Optional details
                 Section("Optional Details") {
-                    TextField("Route / Location", text: $vm.route)
+                    // Route field with quick-add from library
+                    HStack {
+                        TextField("Route / Location", text: $vm.route)
+                        Button {
+                            showingRoutePicker = true
+                        } label: {
+                            Image(systemName: "map")
+                                .foregroundStyle(.orange)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     TextField("Elevation Gain (ft)", text: $vm.elevationGainFeet)
                         #if os(iOS)
                         .keyboardType(.numberPad)
@@ -118,6 +129,14 @@ struct LogRunningView: View {
                     vm.populate(from: session)
                 }
                 checkStravaConflict()
+            }
+            .sheet(isPresented: $showingRoutePicker) {
+                RoutePickerView(targetDistanceMiles: vm.distanceMiles) { route in
+                    vm.route = route.name
+                    if vm.distanceMiles == 0 && route.distanceMiles > 0 {
+                        vm.distanceMiles = route.distanceMiles
+                    }
+                }
             }
         }
     }

@@ -65,18 +65,18 @@ enum NotificationWorkoutFilter: String, Codable, CaseIterable {
 final class NotificationRule {
     var id: UUID
     /// Raw storage for `NotificationRuleType`.
-    var typeRaw: String
-    var isEnabled: Bool
+    var typeRaw: String = NotificationRuleType.preWorkoutMeal.rawValue
+    var isEnabled: Bool = true
     /// For pre-event rules: minutes before the workout to fire.
     /// For race rules: minutes before the race date.
     /// For longRunFuel: interval in minutes.
-    var leadMinutes: Int
+    var leadMinutes: Int = 90
     /// Override the default message (empty = use default).
-    var customMessage: String
+    var customMessage: String = ""
     /// Whether to play a sound with this notification.
-    var soundEnabled: Bool
+    var soundEnabled: Bool = true
     /// Raw storage for `NotificationWorkoutFilter`.
-    var workoutFilterRaw: String
+    var workoutFilterRaw: String = NotificationWorkoutFilter.allWorkouts.rawValue
     var createdAt: Date
 
     var type: NotificationRuleType {

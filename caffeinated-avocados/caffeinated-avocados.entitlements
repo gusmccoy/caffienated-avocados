@@ -8,5 +8,20 @@
 	<true/>
 	<key>keychain-access-groups</key>
 	<array/>
+	<!-- CloudKit / iCloud sync for the plan and profile stores -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.io.mccoy.caffeinated-avocados</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<!-- Ubiquity key-value store (used internally by NSPersistentCloudKitContainer) -->
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)io.mccoy.caffeinated-avocados</string>
+	<!-- Silent push notifications drive CloudKit sync -->
+	<key>aps-environment</key>
+	<string>development</string>
 </dict>
 </plist>

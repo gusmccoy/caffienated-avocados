@@ -46,11 +46,11 @@ enum PRDistance: String, Codable, CaseIterable {
 final class PersonalRecord {
     var id: UUID
     /// Raw storage for PRDistance — do not access directly.
-    var distanceRaw: String
+    var distanceRaw: String = PRDistance.fiveK.rawValue
     /// PR time in seconds.
-    var timeSeconds: Int
+    var timeSeconds: Int = 0
     var dateAchieved: Date
-    var notes: String
+    var notes: String = ""
     /// UUID of the `PRMilestone` this PR belongs to. `nil` = all-time record.
     var milestoneIdString: String?
     /// True when this PR was automatically derived from Strava splits data.
@@ -102,9 +102,9 @@ final class PersonalRecord {
 @Model
 final class PRMilestone {
     var id: UUID
-    var name: String
+    var name: String = ""
     var startDate: Date
-    var orderIndex: Int
+    var orderIndex: Int = 0
 
     init(name: String, startDate: Date, orderIndex: Int = 0) {
         self.id = UUID()
