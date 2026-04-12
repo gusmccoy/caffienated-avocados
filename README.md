@@ -38,6 +38,7 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Calendar export** — planned workouts can be pushed to Apple Calendar
 - **Copy last week** — duplicate the previous week's plan with one tap
 - **Auto-matching** — synced Strava activities are automatically matched against planned workouts and marked complete
+- **Workout Templates** — save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run"); load templates directly into the add-workout form; manage the template library from the Plan tab toolbar
 
 ### Settings
 - **Strava** — OAuth connect / disconnect, manual sync, undo when a Strava import overrides a manual entry
@@ -122,11 +123,6 @@ The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are c
 - Line graphs for weekly mileage, average pace, and total volume over time
 - Heart rate zone distribution across recent activities
 - Week-over-week and month-over-month deltas to surface peaking, fatigue, and consistency patterns
-
-### Workout Templates
-- Save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run")
-- Clone templates directly into the weekly plan with one tap
-- Manage and organize a personal template library
 
 ### Smart Suggestions
 - Flag undertraining weeks based on recent volume trends
