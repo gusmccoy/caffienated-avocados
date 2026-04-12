@@ -17,6 +17,12 @@ A personal fitness tracking app for iOS and macOS — log runs, strength session
 ### Dashboard
 Weekly summary of workouts, total time, and mileage with a week-over-week delta indicator. Quick-add buttons for all activity types and a recent activity feed.
 
+**Training Insights card** — context-aware suggestions surfaced inline when relevant:
+- **Undertraining flag** — current week mileage is well below recent average (≥4 weeks of history required)
+- **Recovery week recommendation** — 3 consecutive weeks at 20%+ above prior baseline
+- **Volume spike warning** — current week already 30%+ above average with days remaining
+- **Comeback ramp warning** — rapid mileage increase detected after a ≥2-week running gap
+- **Consistency acknowledgement** — positive reinforcement when training has been steady for 4+ weeks (shown only when no warnings apply)
 **Trends** (accessible via toolbar) — historical charts with a 1M / 3M / 6M / 1Y range picker:
 - **Weekly Mileage** — bar chart of running miles per week
 - **Average Pace** — line chart of average running pace per activity (axis inverted so faster = up)
@@ -141,11 +147,6 @@ The app runs natively on macOS. Form sheets (Add Segment, Settings, Units) are c
 - Line graphs for weekly mileage, average pace, and total volume over time
 - Heart rate zone distribution across recent activities
 - Week-over-week and month-over-month deltas to surface peaking, fatigue, and consistency patterns
-
-### Smart Suggestions
-- Flag undertraining weeks based on recent volume trends
-- Recommend recovery weeks after sustained high-volume blocks
-- Surface injury-return pattern warnings (e.g. ramping too fast post-comeback)
 
 ## Architecture Notes
 

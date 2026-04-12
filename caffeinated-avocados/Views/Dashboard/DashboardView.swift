@@ -25,11 +25,20 @@ struct DashboardView: View {
         listVM.weekOverWeekDelta(from: sessions)
     }
 
+    private var trainingSuggestions: [TrainingSuggestion] {
+        SuggestionEngine.suggestions(from: Array(sessions))
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     WeeklySummaryCard(summary: weeklySummary, delta: weekDelta)
+
+                    if !trainingSuggestions.isEmpty {
+                        SuggestionsCard(suggestions: trainingSuggestions)
+                    }
+
                     QuickAddRow(
                         showingLogRunning: $showingLogRunning,
                         showingLogStrength: $showingLogStrength,
