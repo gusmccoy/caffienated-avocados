@@ -18,6 +18,7 @@ struct PlanView: View {
     @State private var editingRace: Race? = nil
     @State private var showingCopyConfirmation = false
     @State private var showingRouteLibrary = false
+    @State private var showingTemplateLibrary = false
 
     var body: some View {
         NavigationStack {
@@ -67,6 +68,11 @@ struct PlanView: View {
                     }
                 }
                 ToolbarItem(placement: .secondaryAction) {
+                    Button { showingTemplateLibrary = true } label: {
+                        Label("Workout Templates", systemImage: "doc.text")
+                    }
+                }
+                ToolbarItem(placement: .secondaryAction) {
                     Button { showingRouteLibrary = true } label: {
                         Label("Route Library", systemImage: "map")
                     }
@@ -111,6 +117,9 @@ struct PlanView: View {
             }
             .sheet(isPresented: $showingRouteLibrary) {
                 RoutesView()
+            }
+            .sheet(isPresented: $showingTemplateLibrary) {
+                TemplateLibraryView()
             }
         }
     }
