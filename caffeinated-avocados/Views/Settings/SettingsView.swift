@@ -419,6 +419,9 @@ struct PlannerSettingsSection: View {
                 }
                 ForEach(pendingInvites) { invite in
                     pendingInviteRow(invite)
+                        .task(id: invite.id) {
+                            await plannerVM.checkPendingInviteAcceptance(invite: invite, modelContext: modelContext)
+                        }
                 }
             } header: {
                 Label("Your Planner", systemImage: "person.badge.shield.checkmark.fill")
@@ -445,10 +448,8 @@ struct PlannerSettingsSection: View {
             // Generate invite (athlete inviting a planner) — only if no planner yet and no pending invite
             if activePlannerRelationship == nil && pendingInvites.isEmpty {
                 Button {
-                    plannerVM.generateInvite(
-                        athleteDisplayName: plannerVM.currentUserName.isEmpty ? "Athlete" : plannerVM.currentUserName,
-                        modelContext: modelContext
-                    )
+                    plannerVM.generatedInviteCode = ""  // ensure name-entry phase
+                    plannerVM.publishError = nil
                     plannerVM.isShowingInviteSheet = true
                 } label: {
                     Label("Invite a Coach", systemImage: "person.badge.plus")
@@ -470,7 +471,7 @@ struct PlannerSettingsSection: View {
             InviteCodeSheet(plannerVM: plannerVM, modelContext: modelContext)
         }
         .sheet(isPresented: $plannerVM.isShowingAcceptSheet) {
-            AcceptInviteSheet(plannerVM: plannerVM, allRelationships: allRelationships, modelContext: modelContext)
+            AcceptInviteSheet(plannerVM: plannerVM, modelContext: modelContext)
         }
     }
 
@@ -550,63 +551,141 @@ private struct InviteCodeSheet: View {
     let modelContext: ModelContext
     @Environment(\.dismiss) private var dismiss
 
+    @State private var athleteName: String = ""
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 28) {
-                VStack(spacing: 12) {
-                    Image(systemName: "person.badge.plus")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.orange)
+            if plannerVM.generatedInviteCode.isEmpty {
+                nameEntryView
+            } else {
+                codeDisplayView
+            }
+        }
+    }
 
-                    Text("Invite a Coach")
-                        .font(.title2.weight(.bold))
+    // MARK: Phase 1 — name entry
 
-                    Text("Share this code with your coach. Once they enter it in their app, they'll be able to manage your training plan.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-
-                // Invite code display
-                Text(plannerVM.generatedInviteCode)
-                    .font(.system(.title, design: .monospaced, weight: .bold))
-                    .tracking(6)
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 20)
-                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
-
-                #if canImport(UIKit)
-                Button {
-                    plannerVM.copyToClipboard(plannerVM.generatedInviteCode)
-                } label: {
-                    Label(
-                        plannerVM.isCopied ? "Copied!" : "Copy Code",
-                        systemImage: plannerVM.isCopied ? "checkmark" : "doc.on.doc"
+    private var nameEntryView: some View {
+        Form {
+            Section {
+                TextField("Your name (shown to your coach)", text: $athleteName)
+                    .autocorrectionDisabled()
+            } header: {
+                Text("Your Name")
+            } footer: {
+                Text("This is how your coach will see you in their app.")
+            }
+        }
+        .navigationTitle("Invite a Coach")
+        #if !os(macOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        #if os(macOS)
+        .formStyle(.grouped)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Generate Code") {
+                    let name = athleteName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    plannerVM.currentUserName = name.isEmpty ? plannerVM.currentUserName : name
+                    plannerVM.generateInvite(
+                        athleteDisplayName: name.isEmpty ? (plannerVM.currentUserName.isEmpty ? "Athlete" : plannerVM.currentUserName) : name,
+                        modelContext: modelContext
                     )
-                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
-                .padding(.horizontal)
-                #endif
+                .disabled(false)
+            }
+        }
+        .onAppear {
+            athleteName = plannerVM.currentUserName
+        }
+    }
 
+    // MARK: Phase 2 — code display
+
+    private var codeDisplayView: some View {
+        VStack(spacing: 28) {
+            VStack(spacing: 12) {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.orange)
+
+                Text("Invite a Coach")
+                    .font(.title2.weight(.bold))
+
+                Text("Share this code with your coach. Once they enter it in their app, they'll be able to manage your training plan.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
+            Text(plannerVM.generatedInviteCode)
+                .font(.system(.title, design: .monospaced, weight: .bold))
+                .tracking(6)
+                .foregroundStyle(.orange)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 20)
+                .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+
+            #if canImport(UIKit)
+            Button {
+                plannerVM.copyToClipboard(plannerVM.generatedInviteCode)
+            } label: {
+                Label(
+                    plannerVM.isCopied ? "Copied!" : "Copy Code",
+                    systemImage: plannerVM.isCopied ? "checkmark" : "doc.on.doc"
+                )
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.orange)
+            .padding(.horizontal)
+            .disabled(plannerVM.isPublishingInvite)
+            #endif
+
+            if plannerVM.isPublishingInvite {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Publishing invite…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let err = plannerVM.publishError {
+                VStack(spacing: 8) {
+                    Label(err, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                    Button("Retry") {
+                        Task {
+                            await plannerVM.publishToCloudKit(
+                                code: plannerVM.generatedInviteCode,
+                                athleteDisplayName: plannerVM.currentUserName.isEmpty ? "Athlete" : plannerVM.currentUserName
+                            )
+                        }
+                    }
+                    .font(.caption)
+                }
+            } else {
                 Text("This invite is valid until cancelled in Settings.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
-
-                Spacer()
             }
-            .padding(.top, 32)
-            .navigationTitle("Your Invite Code")
-            #if !os(macOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
+
+            Spacer()
+        }
+        .padding(.top, 32)
+        .navigationTitle("Your Invite Code")
+        #if !os(macOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") { dismiss() }
             }
         }
     }
@@ -616,11 +695,11 @@ private struct InviteCodeSheet: View {
 
 private struct AcceptInviteSheet: View {
     @Bindable var plannerVM: PlannerViewModel
-    let allRelationships: [PlannerRelationship]
     let modelContext: ModelContext
     @Environment(\.dismiss) private var dismiss
 
     @State private var myName: String = ""
+    @State private var isLoading = false
 
     var body: some View {
         NavigationStack {
@@ -668,26 +747,32 @@ private struct AcceptInviteSheet: View {
                         plannerVM.acceptCodeInput = ""
                         dismiss()
                     }
+                    .disabled(isLoading)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Accept") { accept() }
-                        .disabled(plannerVM.acceptCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    if isLoading {
+                        ProgressView()
+                    } else {
+                        Button("Accept") { accept() }
+                            .disabled(plannerVM.acceptCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
                 }
             }
         }
     }
 
     private func accept() {
-        do {
-            try plannerVM.acceptInvite(
+        isLoading = true
+        Task {
+            await plannerVM.acceptInvite(
                 code: plannerVM.acceptCodeInput,
                 plannerDisplayName: myName,
-                allRelationships: allRelationships,
                 modelContext: modelContext
             )
-            dismiss()
-        } catch {
-            plannerVM.acceptError = error.localizedDescription
+            isLoading = false
+            if plannerVM.acceptError == nil {
+                dismiss()
+            }
         }
     }
 }
