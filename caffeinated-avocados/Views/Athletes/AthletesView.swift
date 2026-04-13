@@ -252,6 +252,10 @@ private struct AthleteDaySection: View {
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
+        if workout.coachAssignmentId != nil {
+            let workoutId = workout.id.uuidString
+            Task { await CoachAssignmentService.shared.markDeleted(workoutId: workoutId) }
+        }
         let identifier = workout.calendarEventIdentifier
         modelContext.delete(workout)
         if let id = identifier {

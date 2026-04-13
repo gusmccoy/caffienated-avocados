@@ -6,13 +6,25 @@ import SwiftData
 
 struct PlanView: View {
     @State private var vm = PlanViewModel()
+    @State private var plannerVM = PlannerViewModel()
     private let calendarService = CalendarService()
 
-    @Query(sort: \PlannedWorkout.date, order: .forward)
+    @Query(
+        filter: #Predicate<PlannedWorkout> { $0.createdByPlannerRelationshipId == nil },
+        sort: \PlannedWorkout.date,
+        order: .forward
+    )
     private var allPlanned: [PlannedWorkout]
 
     @Query(sort: \Race.date, order: .forward)
     private var allRaces: [Race]
+
+    @Query(
+        filter: #Predicate<PlannerRelationship> { $0.currentUserIsAthlete == true && $0.statusRaw == "accepted" },
+        sort: \PlannerRelationship.createdAt,
+        order: .forward
+    )
+    private var acceptedCoachRelationships: [PlannerRelationship]
 
     @State private var showingAddRace = false
     @State private var editingRace: Race? = nil
@@ -120,6 +132,11 @@ struct PlanView: View {
             }
             .sheet(isPresented: $showingTemplateLibrary) {
                 TemplateLibraryView()
+            }
+            .task {
+                for relationship in acceptedCoachRelationships {
+                    await plannerVM.syncCoachWorkouts(forRelationship: relationship, modelContext: modelContext)
+                }
             }
         }
     }
@@ -527,14 +544,11 @@ private struct DaySection: View {
             } else {
                 ForEach(workouts) { workout in
                     PlannedWorkoutRow(workout: workout)
-                        // Delete: athletes cannot delete coach-created workouts
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if !workout.isCoachCreated {
-                                Button(role: .destructive) {
-                                    deleteWorkout(workout)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                            Button(role: .destructive) {
+                                deleteWorkout(workout)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -553,8 +567,7 @@ private struct DaySection: View {
                                 }
                                 .tint(.orange)
                             }
-                            // Edit: athletes cannot edit coach-created workouts
-                            if !workout.isCompleted && !workout.isCoachCreated {
+                            if !workout.isCompleted {
                                 Button {
                                     vm.openEditSheet(for: workout)
                                 } label: {
@@ -565,13 +578,10 @@ private struct DaySection: View {
                         }
                         .contextMenu {
                             if !workout.isCompleted {
-                                // Edit blocked for coach-created workouts
-                                if !workout.isCoachCreated {
-                                    Button {
-                                        vm.openEditSheet(for: workout)
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
+                                Button {
+                                    vm.openEditSheet(for: workout)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
                                 }
                                 Button {
                                     vm.markPlanComplete(workout, modelContext: modelContext)
@@ -585,13 +595,10 @@ private struct DaySection: View {
                                     Label("Unmark as Done", systemImage: "xmark.circle")
                                 }
                             }
-                            // Delete blocked for coach-created workouts
-                            if !workout.isCoachCreated {
-                                Button(role: .destructive) {
-                                    deleteWorkout(workout)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                            Button(role: .destructive) {
+                                deleteWorkout(workout)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
                 }
@@ -601,6 +608,12 @@ private struct DaySection: View {
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
+        // Prevent re-sync of coach-assigned workouts the athlete explicitly removed
+        if let ckId = workout.coachAssignmentId {
+            var dismissed = UserDefaults.standard.stringArray(forKey: "dismissedCoachAssignments") ?? []
+            dismissed.append(ckId)
+            UserDefaults.standard.set(dismissed, forKey: "dismissedCoachAssignments")
+        }
         let identifier = workout.calendarEventIdentifier
         modelContext.delete(workout)
         if let id = identifier {
@@ -659,8 +672,9 @@ struct PlannedWorkoutRow: View {
                             .padding(.vertical, 1)
                             .background(Color.green.opacity(0.12), in: Capsule())
                     }
-                    // Coach-created badge
-                    if workout.isCoachCreated {
+                    // Coach-created badge (isCoachCreated is false on athlete's device for synced workouts,
+                    // so check plannerDisplayName which is always set on coach-attributed workouts)
+                    if workout.plannerDisplayName != nil {
                         HStack(spacing: 3) {
                             Image(systemName: "person.badge.shield.checkmark.fill")
                                 .font(.system(size: 8))

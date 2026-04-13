@@ -265,6 +265,12 @@ final class PlannedWorkout {
     /// True when this workout was created by a planner (coach) on the athlete's behalf.
     var isCoachCreated: Bool { createdByPlannerRelationshipId != nil }
 
+    /// The CloudKit public-DB record ID (`coachassign-{workoutId}`) of the
+    /// CoachAssignment record that delivered this workout to the athlete's device.
+    /// Set on *both* sides: coach's device (after publish) and athlete's device (after sync).
+    /// Used to deduplicate syncs and to mark the CK record deleted when the coach removes it.
+    var coachAssignmentId: String? = nil
+
     init(
         date: Date,
         workoutType: WorkoutType,
