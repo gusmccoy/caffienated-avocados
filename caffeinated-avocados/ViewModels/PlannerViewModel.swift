@@ -12,13 +12,11 @@ import UIKit
 
 enum PlannerError: LocalizedError {
     case emptyCode
-    case codeNotFound
     case alreadyHasPlanner
 
     var errorDescription: String? {
         switch self {
         case .emptyCode:         return "Please enter an invite code."
-        case .codeNotFound:      return "No pending invite found for that code. Make sure the athlete sent an invite and the code is correct."
         case .alreadyHasPlanner: return "You already have an active planner. Revoke the existing one first."
         }
     }
@@ -50,6 +48,18 @@ final class PlannerViewModel {
     /// Transient "copied" feedback on the share button.
     var isCopied: Bool = false
 
+    // MARK: - CloudKit publish state (athlete side)
+
+    /// True while publishing the invite to CloudKit's public database.
+    var isPublishingInvite: Bool = false
+    /// Set if the CloudKit publish fails — shown in InviteCodeSheet.
+    var publishError: String? = nil
+
+    // MARK: - CloudKit accept state (coach side)
+
+    /// True while the coach's invite acceptance is in flight.
+    var isAcceptingInvite: Bool = false
+
     // MARK: - Planner Context
     //
     // When a planner taps into an athlete's row, `activeAthleteRelationship` is set.
@@ -59,89 +69,129 @@ final class PlannerViewModel {
 
     // MARK: - Invite Generation (athlete side)
 
-    /// Generates a new 8-char uppercase invite code, inserts a pendingOutgoing record,
-    /// and returns the code so the UI can display/copy it.
+    /// Generates a new 8-char uppercase invite code, inserts a pendingOutgoing record locally,
+    /// and fires a background task to publish it to CloudKit's public database so coaches on
+    /// other iCloud accounts can look it up.
     @discardableResult
     func generateInvite(athleteDisplayName: String, modelContext: ModelContext) -> String {
         let code = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8)).uppercased()
         generatedInviteCode = code
 
+        let displayName = athleteDisplayName.isEmpty ? "Athlete" : athleteDisplayName
         let rel = PlannerRelationship(
             inviteCode: code,
             status: .pendingOutgoing,
             currentUserIsAthlete: true,
-            athleteDisplayName: athleteDisplayName.isEmpty ? "Athlete" : athleteDisplayName,
+            athleteDisplayName: displayName,
             plannerDisplayName: ""
         )
         modelContext.insert(rel)
+
+        Task { await publishToCloudKit(code: code, athleteDisplayName: displayName) }
         return code
     }
 
-    /// Cancels a pending outgoing invite and removes its record.
-    func cancelInvite(_ relationship: PlannerRelationship, modelContext: ModelContext) {
-        modelContext.delete(relationship)
-        if generatedInviteCode == relationship.inviteCode {
-            generatedInviteCode = ""
+    @MainActor
+    func publishToCloudKit(code: String, athleteDisplayName: String) async {
+        isPublishingInvite = true
+        publishError = nil
+        do {
+            try await InviteService.shared.publish(code: code, athleteDisplayName: athleteDisplayName)
+        } catch {
+            publishError = "Couldn't publish invite: \(error.localizedDescription)"
         }
+        isPublishingInvite = false
     }
 
-    // MARK: - Invite Acceptance (planner side)
+    /// Cancels a pending outgoing invite, removes its local record, and deletes it from CloudKit.
+    func cancelInvite(_ relationship: PlannerRelationship, modelContext: ModelContext) {
+        let code = relationship.inviteCode
+        modelContext.delete(relationship)
+        if generatedInviteCode == code { generatedInviteCode = "" }
+        Task { await InviteService.shared.deletePending(code: code) }
+    }
 
-    /// Called when a planner enters an invite code.
-    /// Finds the matching pendingOutgoing record (athlete side) in the local store,
-    /// activates both sides, and fills in the planner's display name.
+    // MARK: - Invite Acceptance (coach side)
+
+    /// Called when a coach enters an invite code.
+    /// Looks up the code in CloudKit's public database (works across iCloud accounts),
+    /// marks it accepted, then creates the local planner-side record.
+    @MainActor
     func acceptInvite(
         code: String,
         plannerDisplayName: String,
-        allRelationships: [PlannerRelationship],
         modelContext: ModelContext
-    ) throws {
+    ) async {
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard !trimmed.isEmpty else { throw PlannerError.emptyCode }
-
-        // Look for the athlete's pending invite in the local store
-        guard let pending = allRelationships.first(where: {
-            $0.inviteCode == trimmed &&
-            $0.currentUserIsAthlete == true &&
-            $0.status == .pendingOutgoing
-        }) else {
-            throw PlannerError.codeNotFound
+        guard !trimmed.isEmpty else {
+            acceptError = PlannerError.emptyCode.errorDescription
+            return
         }
 
-        let plannerName = plannerDisplayName.isEmpty ? "Coach" : plannerDisplayName
-
-        // Activate the athlete-side record
-        pending.status = .accepted
-        pending.plannerDisplayName = plannerName
-
-        // Insert a planner-side record (currentUserIsAthlete = false)
-        let plannerRecord = PlannerRelationship(
-            inviteCode: trimmed,
-            status: .accepted,
-            currentUserIsAthlete: false,
-            athleteDisplayName: pending.athleteDisplayName,
-            plannerDisplayName: plannerName
-        )
-        modelContext.insert(plannerRecord)
-
-        acceptCodeInput = ""
+        isAcceptingInvite = true
         acceptError = nil
-        isShowingAcceptSheet = false
+
+        do {
+            let plannerName = plannerDisplayName.isEmpty ? "Coach" : plannerDisplayName
+            let athleteDisplayName = try await InviteService.shared.accept(
+                code: trimmed,
+                plannerDisplayName: plannerName
+            )
+
+            let plannerRecord = PlannerRelationship(
+                inviteCode: trimmed,
+                status: .accepted,
+                currentUserIsAthlete: false,
+                athleteDisplayName: athleteDisplayName,
+                plannerDisplayName: plannerName
+            )
+            modelContext.insert(plannerRecord)
+
+            acceptCodeInput = ""
+            acceptError = nil
+            isShowingAcceptSheet = false
+        } catch {
+            acceptError = error.localizedDescription
+        }
+
+        isAcceptingInvite = false
+    }
+
+    // MARK: - Acceptance Polling (athlete side)
+
+    /// Checks whether a pending invite has been accepted by a coach.
+    /// If so, activates the local record and cleans up the CloudKit invite.
+    /// Safe to call frequently — returns immediately if the invite is already accepted.
+    @MainActor
+    func checkPendingInviteAcceptance(invite: PlannerRelationship, modelContext: ModelContext) async {
+        guard invite.status == .pendingOutgoing else { return }
+        guard let plannerName = await InviteService.shared.checkAcceptance(code: invite.inviteCode),
+              !plannerName.isEmpty else { return }
+
+        invite.status = .accepted
+        invite.plannerDisplayName = plannerName
+
+        // Clean up the public CK record now that both sides are linked
+        await InviteService.shared.deletePending(code: invite.inviteCode)
+        generatedInviteCode = ""
     }
 
     // MARK: - Revocation (either side)
 
-    /// Revokes the relationship. Removes both sides' records from the local store.
+    /// Revokes the relationship. Removes both sides' records from the local store
+    /// and cleans up any corresponding CloudKit public invite.
     func revoke(_ relationship: PlannerRelationship, modelContext: ModelContext) {
-        // Remove the matching opposite-side record too (same inviteCode, opposite isAthlete flag)
+        let code = relationship.inviteCode
         let descriptor = FetchDescriptor<PlannerRelationship>()
         let all = (try? modelContext.fetch(descriptor)) ?? []
-        for rel in all where rel.inviteCode == relationship.inviteCode {
+        for rel in all where rel.inviteCode == code {
             modelContext.delete(rel)
         }
-        if activeAthleteRelationship?.inviteCode == relationship.inviteCode {
+        if activeAthleteRelationship?.inviteCode == code {
             activeAthleteRelationship = nil
         }
+        // Best-effort CK cleanup (no-op if the record was already deleted)
+        Task { await InviteService.shared.deletePending(code: code) }
     }
 
     // MARK: - Planner: Add Workout for Athlete
