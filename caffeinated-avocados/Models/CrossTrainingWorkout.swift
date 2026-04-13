@@ -39,8 +39,8 @@ enum CrossTrainingActivityType: String, Codable, CaseIterable {
 
 @Model
 final class CrossTrainingWorkout {
-    var id: UUID
-    var activityType: CrossTrainingActivityType
+    var id: UUID = UUID()
+    var activityType: CrossTrainingActivityType = CrossTrainingActivityType.other
     var distanceMiles: Double?        // nil for non-distance activities (yoga, etc.)
     var avgPowerWatts: Int?           // Useful for cycling / rowing
     var avgCadenceRPM: Int?           // Cycling cadence

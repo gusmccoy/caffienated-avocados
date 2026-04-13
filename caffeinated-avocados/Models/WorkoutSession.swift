@@ -40,21 +40,21 @@ enum IntensityLevel: String, Codable, CaseIterable {
 /// Base model shared by all workout types.
 @Model
 final class WorkoutSession {
-    var id: UUID
-    var date: Date
-    var type: WorkoutType
-    var title: String
-    var notes: String
-    var durationSeconds: Int          // Total workout duration
-    var intensityLevel: IntensityLevel
+    var id: UUID = UUID()
+    var date: Date = Date()
+    var type: WorkoutType = WorkoutType.running
+    var title: String = ""
+    var notes: String = ""
+    var durationSeconds: Int = 0      // Total workout duration
+    var intensityLevel: IntensityLevel = IntensityLevel.moderate
     var caloriesBurned: Int?
     var heartRateAvg: Int?
     var heartRateMax: Int?
     var stravaActivityId: String?     // nil if not synced from Strava
     /// True when this session was created as a stub by manually marking a planned workout complete.
     var isManualPlanCompletion: Bool = false
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     // Relationships (one-to-one — only one will be non-nil depending on `type`)
     @Relationship(deleteRule: .cascade) var runningWorkout: RunningWorkout?

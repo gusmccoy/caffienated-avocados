@@ -24,7 +24,7 @@ struct StrengthDetailView: View {
                         StatItem(icon: "clock.fill", label: "Duration", value: session.formattedDuration)
                         if let str = strength {
                             StatItem(icon: "dumbbell.fill", label: "Volume", value: String(format: "%.0f lbs", str.totalVolumeLbs))
-                            StatItem(icon: "list.number", label: "Exercises", value: "\(str.exercises.count)")
+                            StatItem(icon: "list.number", label: "Exercises", value: "\(str.exercises?.count ?? 0)")
                         }
                         if let cals = session.caloriesBurned {
                             StatItem(icon: "flame.fill", label: "Calories", value: "\(cals) cal")
@@ -37,11 +37,11 @@ struct StrengthDetailView: View {
                 }
 
                 // Exercise breakdown
-                if let strength = strength, !strength.exercises.isEmpty {
+                if let strength = strength, !(strength.exercises ?? []).isEmpty {
                     SectionCard(title: "Exercises") {
-                        ForEach(strength.exercises.sorted(by: { $0.orderIndex < $1.orderIndex })) { exercise in
+                        ForEach((strength.exercises ?? []).sorted(by: { $0.orderIndex < $1.orderIndex })) { exercise in
                             ExerciseDetailRow(exercise: exercise)
-                            if exercise.id != strength.exercises.last?.id {
+                            if exercise.id != strength.exercises?.last?.id {
                                 Divider()
                             }
                         }

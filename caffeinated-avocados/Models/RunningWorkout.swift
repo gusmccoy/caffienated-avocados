@@ -24,16 +24,16 @@ enum RunType: String, Codable, CaseIterable {
 
 @Model
 final class RunningWorkout {
-    var id: UUID
-    var distanceMiles: Double         // Always stored in miles; UI converts if needed
-    var runType: RunType
-    var averagePaceSecondsPerMile: Int  // Stored as seconds/mile
+    var id: UUID = UUID()
+    var distanceMiles: Double = 0        // Always stored in miles; UI converts if needed
+    var runType: RunType = RunType.easy
+    var averagePaceSecondsPerMile: Int = 0  // Stored as seconds/mile
     var elevationGainFeet: Double?
     var elevationLossFeet: Double?
     var cadenceAvg: Int?              // Steps per minute
     var strideLength: Double?         // In meters
     var route: String?                // e.g. "Griffith Park Loop"
-    var splits: [RunningSplit]        // Per-mile/km split data
+    var splits: [RunningSplit] = []   // Per-mile/km split data
 
     // Back-reference to parent session
     var session: WorkoutSession?

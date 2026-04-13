@@ -44,11 +44,11 @@ enum RaceDistance: String, Codable, CaseIterable {
 
 @Model
 final class Race {
-    var id: UUID
+    var id: UUID = UUID()
     // Property-level defaults for CloudKit schema-evolution safety.
     var name: String = ""
-    var date: Date
-    var raceDistance: RaceDistance = .marathon
+    var date: Date = Date()
+    var raceDistance: RaceDistance = RaceDistance.marathon
     /// Effective distance in miles. Matches `raceDistance.presetMiles` unless `.custom`.
     var distanceMiles: Double = 0
     var location: String = ""
@@ -58,7 +58,7 @@ final class Race {
     var calendarEventIdentifier: String?
     /// Optional fuel and nutrition plan for this race.
     @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     init(
         name: String = "",

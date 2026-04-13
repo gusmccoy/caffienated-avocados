@@ -98,7 +98,7 @@ private struct StrengthRowView: View {
                         .font(.caption).foregroundStyle(.secondary)
                     if let strength = session.strengthWorkout {
                         Text("·")
-                        Text("\(strength.exercises.count) exercises")
+                        Text("\(strength.exercises?.count ?? 0) exercises")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

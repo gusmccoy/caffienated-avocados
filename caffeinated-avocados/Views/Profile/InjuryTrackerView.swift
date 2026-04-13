@@ -114,10 +114,14 @@ struct InjuryTrackerSheetView: View {
                         } onMarkResolved: {
                             active.isActive = false
                             active.endDate = .now
-                            if active.recoveryPhase != .fullTraining {
+                            if active.recoveryPhase != RecoveryPhase.fullTraining {
                                 active.recoveryPhase = .fullTraining
+                                var milestone = ComebackMilestone()
+                                milestone.phase = .fullTraining
+                                milestone.date = .now
+                                milestone.notes = "Cleared to full training"
                                 var ms = active.comebackMilestones
-                                ms.append(ComebackMilestone(phase: .fullTraining, date: .now, notes: "Cleared to full training"))
+                                ms.append(milestone)
                                 active.comebackMilestones = ms
                             }
                         }

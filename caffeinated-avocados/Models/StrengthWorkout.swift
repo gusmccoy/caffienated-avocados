@@ -42,18 +42,18 @@ enum WeightUnit: String, Codable, CaseIterable {
 
 @Model
 final class StrengthWorkout {
-    var id: UUID
+    var id: UUID = UUID()
     var workoutTemplate: String?      // e.g. "Push Day A", "5/3/1 Week 1"
     var strengthTypeRaw: String = StrengthType.unspecified.rawValue
     var strengthType: StrengthType {
         get { StrengthType(rawValue: strengthTypeRaw) ?? .unspecified }
         set { strengthTypeRaw = newValue.rawValue }
     }
-    var primaryMuscleGroups: [MuscleGroup]
-    var totalVolumeLbs: Double        // Computed sum of (weight × reps) for all sets
+    var primaryMuscleGroups: [MuscleGroup] = []
+    var totalVolumeLbs: Double = 0    // Computed sum of (weight × reps) for all sets
     var restBetweenSetsSecs: Int?
 
-    @Relationship(deleteRule: .cascade) var exercises: [ExerciseSet]
+    @Relationship(deleteRule: .cascade) var exercises: [ExerciseSet]?
 
     var session: WorkoutSession?
 
@@ -74,7 +74,7 @@ final class StrengthWorkout {
 
     /// Recalculates total volume from all exercise sets.
     func recalculateVolume() {
-        totalVolumeLbs = exercises.reduce(0) { sum, exercise in
+        totalVolumeLbs = (exercises ?? []).reduce(0) { sum, exercise in
             sum + exercise.sets.reduce(0) { setSum, set in
                 setSum + (set.weightLbs ?? 0) * Double(set.reps ?? 0)
             }
@@ -87,12 +87,12 @@ final class StrengthWorkout {
 /// One exercise entry (e.g. "Bench Press") within a strength workout.
 @Model
 final class ExerciseSet {
-    var id: UUID
-    var name: String
-    var muscleGroup: MuscleGroup
-    var orderIndex: Int               // Display order within the workout
-    var sets: [SetEntry]
-    var notes: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var muscleGroup: MuscleGroup = MuscleGroup.other
+    var orderIndex: Int = 0           // Display order within the workout
+    var sets: [SetEntry] = []
+    var notes: String = ""
 
     var strengthWorkout: StrengthWorkout?
 

@@ -63,7 +63,7 @@ enum NotificationWorkoutFilter: String, Codable, CaseIterable {
 
 @Model
 final class NotificationRule {
-    var id: UUID
+    var id: UUID = UUID()
     /// Raw storage for `NotificationRuleType`.
     var typeRaw: String = NotificationRuleType.preWorkoutMeal.rawValue
     var isEnabled: Bool = true
@@ -77,7 +77,7 @@ final class NotificationRule {
     var soundEnabled: Bool = true
     /// Raw storage for `NotificationWorkoutFilter`.
     var workoutFilterRaw: String = NotificationWorkoutFilter.allWorkouts.rawValue
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     var type: NotificationRuleType {
         get { NotificationRuleType(rawValue: typeRaw) ?? .preWorkoutMeal }

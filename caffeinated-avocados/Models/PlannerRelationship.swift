@@ -27,11 +27,11 @@ enum PlannerRelationshipStatus: String, Codable {
 
 @Model
 final class PlannerRelationship {
-    var id: UUID
+    var id: UUID = UUID()
     /// Short code (8 uppercase chars) used to pair the two sides.
-    var inviteCode: String
+    var inviteCode: String = ""
     /// Raw string backing the status enum.
-    var statusRaw: String
+    var statusRaw: String = PlannerRelationshipStatus.pendingOutgoing.rawValue
 
     var status: PlannerRelationshipStatus {
         get { PlannerRelationshipStatus(rawValue: statusRaw) ?? .pendingOutgoing }
@@ -40,15 +40,15 @@ final class PlannerRelationship {
 
     /// True when the current device/user is the **athlete** in this relationship.
     /// False when the current user is the **planner** for `athleteDisplayName`.
-    var currentUserIsAthlete: Bool
+    var currentUserIsAthlete: Bool = false
 
     /// Display name of the athlete (shown in planner's Athletes tab).
-    var athleteDisplayName: String
+    var athleteDisplayName: String = ""
     /// Display name of the planner (shown in athlete's Settings and plan rows).
-    var plannerDisplayName: String
+    var plannerDisplayName: String = ""
 
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     init(
         inviteCode: String,

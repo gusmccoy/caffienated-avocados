@@ -77,8 +77,8 @@ struct FuelEntry: Codable, Identifiable {
 /// Attach via `PlannedWorkout.fuelPlan` or `Race.fuelPlan`.
 @Model
 final class FuelPlan {
-    var id: UUID
-    var createdAt: Date
+    var id: UUID = UUID()
+    var createdAt: Date = Date()
 
     // MARK: Pre-workout targets
     var preNotes: String       = ""
@@ -108,6 +108,11 @@ final class FuelPlan {
             entriesData = (try? JSONEncoder().encode(newValue)) ?? Data()
         }
     }
+
+    // MARK: - Inverse relationships (required for CloudKit)
+
+    var plannedWorkout: PlannedWorkout?
+    var race: Race?
 
     // MARK: - Convenience
 

@@ -142,7 +142,8 @@ final class StrengthViewModel {
             )
             exModel.sets = entry.sets
             exModel.strengthWorkout = strength
-            strength.exercises.append(exModel)
+            if strength.exercises == nil { strength.exercises = [] }
+            strength.exercises!.append(exModel)
             modelContext.insert(exModel)
         }
 

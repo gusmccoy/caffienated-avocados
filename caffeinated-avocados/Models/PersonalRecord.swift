@@ -44,12 +44,12 @@ enum PRDistance: String, Codable, CaseIterable {
 /// A single personal-best effort for a standard distance.
 @Model
 final class PersonalRecord {
-    var id: UUID
+    var id: UUID = UUID()
     /// Raw storage for PRDistance — do not access directly.
     var distanceRaw: String = PRDistance.fiveK.rawValue
     /// PR time in seconds.
     var timeSeconds: Int = 0
-    var dateAchieved: Date
+    var dateAchieved: Date = Date()
     var notes: String = ""
     /// UUID of the `PRMilestone` this PR belongs to. `nil` = all-time record.
     var milestoneIdString: String?
@@ -101,9 +101,9 @@ final class PersonalRecord {
 /// A named era used for milestone-scoped personal records (e.g. "Post College", "After Injury").
 @Model
 final class PRMilestone {
-    var id: UUID
+    var id: UUID = UUID()
     var name: String = ""
-    var startDate: Date
+    var startDate: Date = Date()
     var orderIndex: Int = 0
 
     init(name: String, startDate: Date, orderIndex: Int = 0) {
