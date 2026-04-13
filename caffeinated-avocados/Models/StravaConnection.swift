@@ -8,16 +8,16 @@ import SwiftData
 
 @Model
 final class StravaConnection {
-    var id: UUID
-    var athleteId: Int
-    var athleteName: String
+    var id: UUID = UUID()
+    var athleteId: Int = 0
+    var athleteName: String = ""
     var athleteUsername: String?
     var profilePictureURL: String?
-    var isConnected: Bool
+    var isConnected: Bool = false
     var lastSyncedAt: Date?
     /// Keychain key under which the access token is stored.
     /// The actual token lives in Keychain, not in SwiftData.
-    var keychainTokenKey: String
+    var keychainTokenKey: String = ""
 
     init(
         athleteId: Int,

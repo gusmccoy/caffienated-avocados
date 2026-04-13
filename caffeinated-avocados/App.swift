@@ -29,8 +29,7 @@ struct McCoyFitnessApp: App {
     //   3. Enable Push Notifications capability (needed for CK change tokens).
 
     let modelContainer: ModelContainer = {
-        // Models that sync via CloudKit
-        let cloudSchema = Schema([
+        let schema = Schema([
             PlannedWorkout.self,
             Race.self,
             FuelPlan.self,
@@ -40,10 +39,6 @@ struct McCoyFitnessApp: App {
             SavedRoute.self,
             InjuryRecord.self,
             WorkoutTemplate.self,
-        ])
-
-        // Models stored on-device only
-        let localSchema = Schema([
             WorkoutSession.self,
             RunningWorkout.self,
             StrengthWorkout.self,
@@ -53,52 +48,36 @@ struct McCoyFitnessApp: App {
             PlannerRelationship.self,
         ])
 
-        let cloudConfig = ModelConfiguration(
-            "CloudStore",
-            schema: cloudSchema,
+        let storeURL = URL.applicationSupportDirectory.appending(path: "main.store")
+        let config = ModelConfiguration(
+            schema: schema,
+            url: storeURL,
             cloudKitDatabase: .private("iCloud.io.mccoy.caffeinated-avocados")
         )
 
-        // Point the local store at the legacy "default.store" URL so that
-        // existing logged workout data is preserved after the migration.
-        let legacyURL = URL.applicationSupportDirectory
-            .appending(path: "default.store")
-        let localConfig = ModelConfiguration(
-            "LocalStore",
-            schema: localSchema,
-            url: legacyURL
-        )
-
-        let fullSchema = Schema(
-            cloudSchema.entities + localSchema.entities
-        )
+        func wipeStore() {
+            for ext in ["store", "store-shm", "store-wal"] {
+                try? FileManager.default.removeItem(
+                    at: URL.applicationSupportDirectory.appending(path: "main.\(ext)")
+                )
+            }
+            // Also wipe legacy store names from previous container configurations
+            let storeBase = URL.applicationSupportDirectory
+            for name in ["default", "CloudStore", "LocalStore"] {
+                for ext in ["store", "store-shm", "store-wal", "sqlite", "sqlite-shm", "sqlite-wal"] {
+                    try? FileManager.default.removeItem(at: storeBase.appending(path: "\(name).\(ext)"))
+                }
+            }
+        }
 
         do {
-            return try ModelContainer(
-                for: fullSchema,
-                configurations: [cloudConfig, localConfig]
-            )
+            return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            // Schema migration failure — wipe both stores and start fresh.
-            print("⚠️ SwiftData migration failed (\(error)). Wiping stores and recreating.")
-            let storeBase = URL.applicationSupportDirectory
-            // Legacy / local store files
-            for ext in ["store", "store-shm", "store-wal"] {
-                try? FileManager.default.removeItem(
-                    at: storeBase.appending(path: "default.\(ext)")
-                )
-            }
-            // CloudKit store files
-            for ext in ["store", "store-shm", "store-wal"] {
-                try? FileManager.default.removeItem(
-                    at: storeBase.appending(path: "CloudStore.\(ext)")
-                )
-            }
+            print("⚠️ SwiftData load failed: \(error)")
+            print("⚠️ Wiping store at \(storeURL.path) and recreating.")
+            wipeStore()
             do {
-                return try ModelContainer(
-                    for: fullSchema,
-                    configurations: [cloudConfig, localConfig]
-                )
+                return try ModelContainer(for: schema, configurations: [config])
             } catch {
                 fatalError("Could not create ModelContainer even after store wipe: \(error)")
             }

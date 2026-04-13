@@ -52,8 +52,8 @@ struct ComebackMilestone: Codable, Identifiable {
 
 @Model
 final class InjuryRecord {
-    var id: UUID
-    var startDate: Date
+    var id: UUID = UUID()
+    var startDate: Date = Date()
     /// nil = injury is still ongoing.
     var endDate: Date? = nil
     /// Brief description of what happened.
@@ -65,7 +65,7 @@ final class InjuryRecord {
     var milestonesData: Data = Data()
     /// UUID of a PRMilestone created for post-injury era tracking.
     var linkedPRMilestoneIdString: String? = nil
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     var recoveryPhase: RecoveryPhase {
         get { RecoveryPhase(rawValue: recoveryPhaseRaw) ?? .resting }

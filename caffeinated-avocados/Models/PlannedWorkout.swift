@@ -134,12 +134,12 @@ struct PlannedRunSegment: Codable, Identifiable {
 
 @Model
 final class PlannedWorkout {
-    var id: UUID
+    var id: UUID = UUID()
     /// Stored as startOfDay so grouping by day is a simple equality check.
-    var date: Date
+    var date: Date = Date()
     // Property-level defaults ensure CloudKit-synced records can be reconstructed
     // by SwiftData without calling init() when schema evolves across app versions.
-    var workoutType: WorkoutType = .running
+    var workoutType: WorkoutType = WorkoutType.running
     var title: String = ""
     /// Always stored in miles (0 for strength workouts or when not set).
     var plannedDistanceMiles: Double = 0
@@ -245,14 +245,14 @@ final class PlannedWorkout {
     var postRunStrides: Bool = false
     /// Optional fuel and nutrition plan for this workout.
     @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
-    var intensityLevel: IntensityLevel = .moderate
+    var intensityLevel: IntensityLevel = IntensityLevel.moderate
     /// EKEvent.eventIdentifier — nil if calendar access was not granted or event not created.
     var calendarEventIdentifier: String?
     /// True when an imported activity matched this planned workout within the configured threshold.
     var isCompleted: Bool = false
     /// The stravaActivityId of the session that completed this planned workout, if applicable.
     var completedByStravaActivityId: String?
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     // MARK: - Planner (coach) attribution
 

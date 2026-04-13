@@ -6,10 +6,10 @@ import SwiftData
 
 @Model
 final class WorkoutTemplate {
-    var id: UUID
+    var id: UUID = UUID()
     /// User-visible name for this template (e.g. "Tuesday Tempo", "Saturday Long Run").
     var templateName: String = ""
-    var workoutType: WorkoutType = .running
+    var workoutType: WorkoutType = WorkoutType.running
     var title: String = ""
     var plannedDistanceMiles: Double = 0
     var plannedDurationSeconds: Int = 0
@@ -73,7 +73,7 @@ final class WorkoutTemplate {
 
     var routeDistanceMiles: Double = 0
 
-    var createdAt: Date
+    var createdAt: Date = Date()
     /// Number of times this template has been applied to a plan day.
     var usageCount: Int = 0
 
@@ -122,13 +122,13 @@ final class WorkoutTemplate {
         } else if routeDistanceMiles > 0 {
             parts.append(String(format: "%.2g mi route", routeDistanceMiles))
         }
-        if workoutType == .running && runCategory != .none {
+        if workoutType == WorkoutType.running && runCategory != RunCategory.none {
             parts.append(runCategory.rawValue)
         }
-        if workoutType == .strength && strengthType != .unspecified {
+        if workoutType == WorkoutType.strength && strengthType != StrengthType.unspecified {
             parts.append(strengthType.rawValue)
         }
-        if workoutType == .crossTraining {
+        if workoutType == WorkoutType.crossTraining {
             parts.append(crossTrainingActivityType.rawValue)
         }
         if plannedDurationSeconds > 0 {

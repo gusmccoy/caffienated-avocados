@@ -26,7 +26,7 @@ enum RouteSurface: String, Codable, CaseIterable {
 
 @Model
 final class SavedRoute {
-    var id: UUID
+    var id: UUID = UUID()
     var name: String = ""
     var distanceMiles: Double = 0
     var notes: String = ""
@@ -35,7 +35,7 @@ final class SavedRoute {
     var surfaceRaw: String = RouteSurface.road.rawValue
     /// Number of times this route was applied to a logged run.
     var usageCount: Int = 0
-    var createdAt: Date
+    var createdAt: Date = Date()
 
     var surface: RouteSurface {
         get { RouteSurface(rawValue: surfaceRaw) ?? .road }
