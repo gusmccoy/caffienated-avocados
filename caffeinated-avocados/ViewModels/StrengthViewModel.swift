@@ -71,7 +71,7 @@ final class StrengthViewModel {
     }
 
     var isFormValid: Bool {
-        !exercises.isEmpty && durationSeconds > 0
+        durationSeconds > 0
     }
 
     // MARK: - Exercise management
