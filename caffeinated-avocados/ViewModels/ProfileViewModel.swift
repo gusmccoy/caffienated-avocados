@@ -108,10 +108,12 @@ final class ProfileViewModel {
 
     var milestoneFormName: String = ""
     var milestoneFormStartDate: Date = .now
+    var milestoneFormNotes: String = ""
 
     func openAddMilestone() {
         milestoneFormName = ""
         milestoneFormStartDate = .now
+        milestoneFormNotes = ""
         editingMilestone = nil
         isShowingAddMilestone = true
     }
@@ -119,6 +121,7 @@ final class ProfileViewModel {
     func openEditMilestone(_ milestone: PRMilestone) {
         milestoneFormName = milestone.name
         milestoneFormStartDate = milestone.startDate
+        milestoneFormNotes = milestone.notes
         editingMilestone = milestone
         isShowingAddMilestone = true
     }
@@ -127,11 +130,13 @@ final class ProfileViewModel {
         if let existing = editingMilestone {
             existing.name = milestoneFormName
             existing.startDate = milestoneFormStartDate
+            existing.notes = milestoneFormNotes
         } else {
             let milestone = PRMilestone(
                 name: milestoneFormName,
                 startDate: milestoneFormStartDate,
-                orderIndex: existingCount
+                orderIndex: existingCount,
+                notes: milestoneFormNotes
             )
             modelContext.insert(milestone)
         }

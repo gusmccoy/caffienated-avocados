@@ -244,20 +244,29 @@ private struct PRRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: pr.distance.systemImage)
-                .foregroundStyle(.orange)
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(pr.distance.rawValue)
-                    .font(.subheadline.weight(.medium))
-                Text(pr.dateAchieved.formatted(date: .abbreviated, time: .omitted))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Image(systemName: pr.distance.systemImage)
+                    .foregroundStyle(.orange)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(pr.distance.rawValue)
+                        .font(.subheadline.weight(.medium))
+                    Text(pr.dateAchieved.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(pr.formattedTime)
+                    .font(.subheadline.monospacedDigit().weight(.semibold))
+            }
+
+            if !pr.notes.isEmpty {
+                Text(pr.notes)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
             }
-            Spacer()
-            Text(pr.formattedTime)
-                .font(.subheadline.monospacedDigit().weight(.semibold))
         }
         .padding(.vertical, 8)
         .contextMenu {
@@ -308,6 +317,13 @@ private struct MilestoneCard: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+            }
+
+            if !milestone.notes.isEmpty {
+                Text(milestone.notes)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
             }
 
             if bestPRs.isEmpty {
@@ -503,6 +519,10 @@ private struct AddMilestoneSheet: View {
                     Text("When Did This Era Begin?")
                 } footer: {
                     Text("PRs logged on or after this date can be assigned to this era.")
+                }
+
+                Section("Notes") {
+                    TextField("Optional", text: $vm.milestoneFormNotes)
                 }
             }
             #if os(macOS)

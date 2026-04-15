@@ -67,6 +67,9 @@ Personal records, training history, and injury tracking in one place.
 
 - **Athlete identity** — first name and "An Avocado since" date
 - **Personal Records** — 1 Mile, 2 Mile, 5K, 10K, Half Marathon, Marathon; All-Time / YTD / Milestone modes
+- **PR Notes** — add context to individual PRs with optional notes (visible in all PR views)
+- **Milestone Eras** — create named training eras (e.g. "Post College", "After Injury"); track PRs by period
+- **Milestone Notes** — add context to milestone eras (e.g. comeback phase, goal, progress summary)
 - **Injury & Comeback Tracker** — log injuries and extended breaks; track recovery phase (Resting → Walking → Easy Running → Building Back → Full Training); log comeback milestones with dates and notes; workout-day notifications are silenced automatically while an injury is active (race countdowns continue); optionally creates a linked "Post-Injury" PR Milestone era on the spot
 
 ## Project Structure
