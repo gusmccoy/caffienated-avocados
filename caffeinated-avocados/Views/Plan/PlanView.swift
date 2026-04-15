@@ -700,6 +700,15 @@ struct PlannedWorkoutRow: View {
                         .padding(.vertical, 1)
                         .background(Color.purple.opacity(0.10), in: Capsule())
                     }
+                    // Post-run strides badge (runs only)
+                    if workout.workoutType == .running && workout.postRunStrides && !workout.isCompleted {
+                        Text("w/ strides")
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.15), in: Capsule())
+                            .foregroundStyle(.orange)
+                    }
                 }
 
                 HStack(spacing: 8) {
