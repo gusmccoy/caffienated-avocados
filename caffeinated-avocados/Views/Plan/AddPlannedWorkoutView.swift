@@ -410,6 +410,13 @@ struct AddPlannedWorkoutView: View {
     }
 
     private func create() {
+        // Calculate displayOrder as the count of existing workouts on this day
+        let dayStart = vm.sheetTargetDate.startOfDay
+        let descriptor = FetchDescriptor<PlannedWorkout>(
+            predicate: #Predicate { $0.date == dayStart }
+        )
+        let existingCount = (try? modelContext.fetchCount(descriptor)) ?? 0
+
         let workout = PlannedWorkout(
             date: vm.sheetTargetDate,
             workoutType: vm.formType,
@@ -422,7 +429,8 @@ struct AddPlannedWorkoutView: View {
             runSegments: vm.formRunSegments,
             notes: vm.formNotes,
             postRunStrides: vm.formPostRunStrides,
-            intensityLevel: vm.formIntensity
+            intensityLevel: vm.formIntensity,
+            displayOrder: existingCount
         )
         modelContext.insert(workout)
         workout.routeWaypoints = vm.formRouteWaypoints

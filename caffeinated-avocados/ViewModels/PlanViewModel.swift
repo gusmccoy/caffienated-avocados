@@ -389,7 +389,8 @@ final class PlanViewModel {
                 plannedDistanceMiles: source.plannedDistanceMiles,
                 plannedDurationSeconds: source.plannedDurationSeconds,
                 notes: source.notes,
-                intensityLevel: source.intensityLevel
+                intensityLevel: source.intensityLevel,
+                displayOrder: source.displayOrder
             )
             modelContext.insert(copy)
         }

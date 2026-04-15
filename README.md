@@ -52,6 +52,7 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Copy last week** — duplicate the previous week's plan with one tap
 - **Auto-matching** — synced Strava activities are automatically matched against planned workouts and marked complete
 - **Workout Templates** — save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run"); load templates directly into the add-workout form; manage the template library from the Plan tab toolbar
+- **Drag & drop reordering** — reorder planned activities within a day by dragging; displayOrder is persisted automatically
 
 ### Settings
 - **Strava** — OAuth connect / disconnect, manual sync, undo when a Strava import overrides a manual entry
