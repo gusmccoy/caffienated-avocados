@@ -8,7 +8,10 @@ struct PlanView: View {
     @State private var vm = PlanViewModel()
     private let calendarService = CalendarService()
 
-    @Query(sort: \PlannedWorkout.date, order: .forward)
+    @Query(sort: [
+        SortDescriptor(\PlannedWorkout.date, order: .forward),
+        SortDescriptor(\PlannedWorkout.displayOrder, order: .forward)
+    ])
     private var allPlanned: [PlannedWorkout]
 
     @Query(sort: \Race.date, order: .forward)
@@ -525,8 +528,15 @@ private struct DaySection: View {
                     .foregroundStyle(.tertiary)
                     .padding(.vertical, 2)
             } else {
-                ForEach(workouts) { workout in
+                ForEach(Array(workouts.enumerated()), id: \.element.id) { index, workout in
                     PlannedWorkoutRow(workout: workout)
+                        .draggable(workout)
+                        .dropDestination(for: PlannedWorkout.self) { dropped, _ in
+                            if !dropped.isEmpty, let droppedWorkout = dropped.first {
+                                reorderWorkouts(movedWorkout: droppedWorkout, targetIndex: index, from: workouts)
+                            }
+                            return true
+                        }
                         // Delete: athletes cannot delete coach-created workouts
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             if !workout.isCoachCreated {
@@ -609,6 +619,24 @@ private struct DaySection: View {
             }
         }
     }
+
+    private func reorderWorkouts(movedWorkout: PlannedWorkout, targetIndex: Int, from workouts: [PlannedWorkout]) {
+        var updatedWorkouts = workouts
+
+        // Remove the moved workout from its current position
+        if let currentIndex = updatedWorkouts.firstIndex(where: { $0.id == movedWorkout.id }) {
+            updatedWorkouts.remove(at: currentIndex)
+        }
+
+        // Insert at the target position
+        let insertIndex = min(targetIndex, updatedWorkouts.count)
+        updatedWorkouts.insert(movedWorkout, at: insertIndex)
+
+        // Update displayOrder for all workouts
+        for (index, workout) in updatedWorkouts.enumerated() {
+            workout.displayOrder = index
+        }
+    }
 }
 
 // MARK: - Planned Workout Row
@@ -671,6 +699,15 @@ struct PlannedWorkoutRow: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(Color.purple.opacity(0.10), in: Capsule())
+                    }
+                    // Post-run strides badge (runs only)
+                    if workout.workoutType == .running && workout.postRunStrides && !workout.isCompleted {
+                        Text("w/ strides")
+                            .font(.caption2.weight(.medium))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.15), in: Capsule())
+                            .foregroundStyle(.orange)
                     }
                 }
 

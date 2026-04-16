@@ -253,6 +253,8 @@ final class PlannedWorkout {
     /// The stravaActivityId of the session that completed this planned workout, if applicable.
     var completedByStravaActivityId: String?
     var createdAt: Date = Date()
+    /// Order for displaying within the same day (0-based; defaults to 0).
+    var displayOrder: Int = 0
 
     // MARK: - Planner (coach) attribution
 
@@ -282,7 +284,8 @@ final class PlannedWorkout {
         isCompleted: Bool = false,
         completedByStravaActivityId: String? = nil,
         createdByPlannerRelationshipId: String? = nil,
-        plannerDisplayName: String? = nil
+        plannerDisplayName: String? = nil,
+        displayOrder: Int = 0
     ) {
         self.id = UUID()
         self.date = date
@@ -303,5 +306,6 @@ final class PlannedWorkout {
         self.createdByPlannerRelationshipId = createdByPlannerRelationshipId
         self.plannerDisplayName = plannerDisplayName
         self.createdAt = .now
+        self.displayOrder = displayOrder
     }
 }

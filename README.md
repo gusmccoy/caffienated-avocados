@@ -52,6 +52,7 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Copy last week** — duplicate the previous week's plan with one tap
 - **Auto-matching** — synced Strava activities are automatically matched against planned workouts and marked complete
 - **Workout Templates** — save any planned workout as a reusable template (e.g. "Tuesday Tempo", "Saturday Long Run"); load templates directly into the add-workout form; manage the template library from the Plan tab toolbar
+- **Drag & drop reordering** — reorder planned activities within a day by dragging; displayOrder is persisted automatically
 
 ### Settings
 - **Strava** — OAuth connect / disconnect, manual sync, undo when a Strava import overrides a manual entry
@@ -66,6 +67,9 @@ Personal records, training history, and injury tracking in one place.
 
 - **Athlete identity** — first name and "An Avocado since" date
 - **Personal Records** — 1 Mile, 2 Mile, 5K, 10K, Half Marathon, Marathon; All-Time / YTD / Milestone modes
+- **PR Notes** — add context to individual PRs with optional notes (visible in all PR views)
+- **Milestone Eras** — create named training eras (e.g. "Post College", "After Injury"); track PRs by period
+- **Milestone Notes** — add context to milestone eras (e.g. comeback phase, goal, progress summary)
 - **Injury & Comeback Tracker** — log injuries and extended breaks; track recovery phase (Resting → Walking → Easy Running → Building Back → Full Training); log comeback milestones with dates and notes; workout-day notifications are silenced automatically while an injury is active (race countdowns continue); optionally creates a linked "Post-Injury" PR Milestone era on the spot
 
 ## Project Structure

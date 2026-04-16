@@ -105,11 +105,13 @@ final class PRMilestone {
     var name: String = ""
     var startDate: Date = Date()
     var orderIndex: Int = 0
+    var notes: String = ""
 
-    init(name: String, startDate: Date, orderIndex: Int = 0) {
+    init(name: String, startDate: Date, orderIndex: Int = 0, notes: String = "") {
         self.id = UUID()
         self.name = name
         self.startDate = startDate
         self.orderIndex = orderIndex
+        self.notes = notes
     }
 }
