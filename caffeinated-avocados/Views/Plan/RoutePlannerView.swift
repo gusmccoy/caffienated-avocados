@@ -18,6 +18,8 @@ struct RoutePlannerView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    @State private var locationManager = LocationManager()
+    @State private var hasCenteredOnUser = false
     @State private var waypoints: [RouteWaypoint] = []
     @State private var polylineCoords: [CLLocationCoordinate2D] = []
     @State private var distanceMeters: Double = 0
@@ -56,7 +58,29 @@ struct RoutePlannerView: View {
                         .disabled(waypoints.count < 2)
                 }
             }
-            .onAppear { loadExisting() }
+            .onAppear {
+                loadExisting()
+                locationManager.requestLocation()
+            }
+            .onChange(of: locationManager.lastCoordinate?.latitude) { _, _ in
+                centerOnUserIfNeeded()
+            }
+        }
+    }
+
+    /// Centers the camera on the user's current location the first time it's available,
+    /// unless the user is already editing an existing route.
+    private func centerOnUserIfNeeded() {
+        guard !hasCenteredOnUser,
+              waypoints.isEmpty,
+              let coord = locationManager.lastCoordinate else { return }
+        hasCenteredOnUser = true
+        withAnimation {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: coord,
+                latitudinalMeters: 1500,
+                longitudinalMeters: 1500
+            ))
         }
     }
 

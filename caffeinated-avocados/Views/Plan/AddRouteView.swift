@@ -15,12 +15,48 @@ struct AddRouteView: View {
     @State private var surface: RouteSurface = .road
     @State private var isFavorite = false
     @State private var notes = ""
+    @State private var waypoints: [RouteWaypoint] = []
+    @State private var polyline: [RouteCoordinate] = []
+    @State private var showingRoutePlanner = false
 
     private var isValid: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: Map preview
+                Section {
+                    if polyline.count >= 2 {
+                        RoutePreviewMap(polyline: polyline, height: 160)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+
+                        HStack {
+                            Label(
+                                String(format: "%.2f mi on map", distanceMiles),
+                                systemImage: "map"
+                            )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Edit on Map") { showingRoutePlanner = true }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+                        }
+                    } else {
+                        Button {
+                            showingRoutePlanner = true
+                        } label: {
+                            Label("Draw on Map", systemImage: "map")
+                        }
+                    }
+                } header: {
+                    Text("Route Map")
+                } footer: {
+                    if polyline.count < 2 {
+                        Text("Draw the route on Apple Maps. Distance is calculated from the path.")
+                    }
+                }
+
                 Section("Route Info") {
                     TextField("Route Name", text: $name)
 
@@ -64,7 +100,29 @@ struct AddRouteView: View {
                 }
             }
             .onAppear { populate() }
+            #if os(macOS)
+            .sheet(isPresented: $showingRoutePlanner) { routePlanner }
+            #else
+            .fullScreenCover(isPresented: $showingRoutePlanner) { routePlanner }
+            #endif
         }
+    }
+
+    private var routePlanner: some View {
+        RoutePlannerView(
+            existingWaypoints: waypoints,
+            existingPolyline: polyline,
+            existingDistanceMiles: distanceMiles,
+            onSave: { wps, poly, miles in
+                waypoints = wps
+                polyline = poly
+                distanceMiles = miles
+            },
+            onClear: {
+                waypoints = []
+                polyline = []
+            }
+        )
     }
 
     private func populate() {
@@ -74,16 +132,20 @@ struct AddRouteView: View {
         surface       = r.surface
         isFavorite    = r.isFavorite
         notes         = r.notes
+        waypoints     = r.routeWaypoints
+        polyline      = r.routePolyline
     }
 
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         if let route = editingRoute {
-            route.name          = trimmed
-            route.distanceMiles = distanceMiles
-            route.surfaceRaw    = surface.rawValue
-            route.isFavorite    = isFavorite
-            route.notes         = notes
+            route.name             = trimmed
+            route.distanceMiles    = distanceMiles
+            route.surfaceRaw       = surface.rawValue
+            route.isFavorite       = isFavorite
+            route.notes            = notes
+            route.routeWaypoints   = waypoints
+            route.routePolyline    = polyline
         } else {
             let route = SavedRoute(
                 name: trimmed,
@@ -92,6 +154,8 @@ struct AddRouteView: View {
                 isFavorite: isFavorite,
                 surface: surface
             )
+            route.routeWaypoints = waypoints
+            route.routePolyline  = polyline
             modelContext.insert(route)
         }
         dismiss()

@@ -15,5 +15,7 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is used to center the map when planning running routes and to show the blue dot on the route planner.</string>
 </dict>
 </plist>
