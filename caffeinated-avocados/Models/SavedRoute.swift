@@ -37,10 +37,42 @@ final class SavedRoute {
     var usageCount: Int = 0
     var createdAt: Date = Date()
 
+    /// JSON-encoded [RouteCoordinate] — the full polyline drawn on the map.
+    /// Empty when the route was entered manually with only metadata.
+    var routePolylineData: Data = Data()
+
+    /// JSON-encoded [RouteWaypoint] — user-placed pins that define the route path.
+    var routeWaypointsData: Data = Data()
+
     var surface: RouteSurface {
         get { RouteSurface(rawValue: surfaceRaw) ?? .road }
         set { surfaceRaw = newValue.rawValue }
     }
+
+    /// Decoded polyline. Encodes/decodes transparently through `routePolylineData`.
+    var routePolyline: [RouteCoordinate] {
+        get {
+            guard !routePolylineData.isEmpty else { return [] }
+            return (try? JSONDecoder().decode([RouteCoordinate].self, from: routePolylineData)) ?? []
+        }
+        set {
+            routePolylineData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
+
+    /// Decoded waypoints for re-editing the route on the map.
+    var routeWaypoints: [RouteWaypoint] {
+        get {
+            guard !routeWaypointsData.isEmpty else { return [] }
+            return (try? JSONDecoder().decode([RouteWaypoint].self, from: routeWaypointsData)) ?? []
+        }
+        set {
+            routeWaypointsData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
+
+    /// True when at least two waypoints are stored — the route can be drawn on a map.
+    var hasRoute: Bool { routeWaypoints.count >= 2 }
 
     init(
         name: String = "",

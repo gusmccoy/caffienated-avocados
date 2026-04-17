@@ -13,7 +13,9 @@ struct RoutesView: View {
 
     @State private var searchText = ""
     @State private var showingAddRoute = false
+    @State private var showingRoutePlanner = false
     @State private var editingRoute: SavedRoute? = nil
+    @State private var editingRoutePath: SavedRoute? = nil
 
     // MARK: - Filtered / sorted routes
 
@@ -57,8 +59,17 @@ struct RoutesView: View {
                     Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingAddRoute = true
+                    Menu {
+                        Button {
+                            showingRoutePlanner = true
+                        } label: {
+                            Label("Plan on Map", systemImage: "map")
+                        }
+                        Button {
+                            showingAddRoute = true
+                        } label: {
+                            Label("Add Without Map", systemImage: "square.and.pencil")
+                        }
                     } label: {
                         Label("Add Route", systemImage: "plus")
                     }
@@ -70,7 +81,52 @@ struct RoutesView: View {
             .sheet(item: $editingRoute) { route in
                 AddRouteView(editingRoute: route)
             }
+            #if os(macOS)
+            .sheet(isPresented: $showingRoutePlanner) { newRoutePlanner }
+            .sheet(item: $editingRoutePath) { route in editPathPlanner(for: route) }
+            #else
+            .fullScreenCover(isPresented: $showingRoutePlanner) { newRoutePlanner }
+            .fullScreenCover(item: $editingRoutePath) { route in editPathPlanner(for: route) }
+            #endif
         }
+    }
+
+    // MARK: - Map-based route creation / editing
+
+    /// RoutePlannerView for a brand-new route. After saving, insert a SavedRoute
+    /// and open AddRouteView so the user can name it.
+    private var newRoutePlanner: some View {
+        RoutePlannerView(
+            existingWaypoints: [],
+            existingPolyline: [],
+            existingDistanceMiles: 0,
+            onSave: { waypoints, polyline, miles in
+                let route = SavedRoute(distanceMiles: miles)
+                route.routeWaypoints = waypoints
+                route.routePolyline = polyline
+                modelContext.insert(route)
+                editingRoute = route
+            },
+            onClear: {}
+        )
+    }
+
+    /// RoutePlannerView pre-loaded with an existing SavedRoute's path for editing.
+    private func editPathPlanner(for route: SavedRoute) -> some View {
+        RoutePlannerView(
+            existingWaypoints: route.routeWaypoints,
+            existingPolyline: route.routePolyline,
+            existingDistanceMiles: route.distanceMiles,
+            onSave: { waypoints, polyline, miles in
+                route.routeWaypoints = waypoints
+                route.routePolyline = polyline
+                route.distanceMiles = miles
+            },
+            onClear: {
+                route.routeWaypoints = []
+                route.routePolyline = []
+            }
+        )
     }
 
     // MARK: - Route List
@@ -87,6 +143,8 @@ struct RoutesView: View {
                             editingRoute = route
                         } onToggleFavorite: {
                             route.isFavorite.toggle()
+                        } onEditOnMap: {
+                            editingRoutePath = route
                         }
                     }
                     .onDelete { offsets in deleteRoutes(favorites, at: offsets) }
@@ -100,6 +158,8 @@ struct RoutesView: View {
                             editingRoute = route
                         } onToggleFavorite: {
                             route.isFavorite.toggle()
+                        } onEditOnMap: {
+                            editingRoutePath = route
                         }
                     }
                     .onDelete { offsets in deleteRoutes(others, at: offsets) }
@@ -153,11 +213,12 @@ private struct RouteRow: View {
     let route: SavedRoute
     let onEdit: () -> Void
     let onToggleFavorite: () -> Void
+    let onEditOnMap: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            // Surface icon
-            Image(systemName: route.surface.systemImage)
+            // Surface icon — swap in map-pin when the route has an actual path drawn.
+            Image(systemName: route.hasRoute ? "map.fill" : route.surface.systemImage)
                 .font(.title3)
                 .foregroundStyle(.orange)
                 .frame(width: 28)
@@ -205,7 +266,10 @@ private struct RouteRow: View {
                 )
             }
             Button { onEdit() } label: {
-                Label("Edit Route", systemImage: "pencil")
+                Label("Edit Details", systemImage: "pencil")
+            }
+            Button { onEditOnMap() } label: {
+                Label(route.hasRoute ? "Edit on Map" : "Draw on Map", systemImage: "map")
             }
         }
     }
