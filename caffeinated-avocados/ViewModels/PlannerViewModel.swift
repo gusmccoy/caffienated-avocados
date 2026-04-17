@@ -196,7 +196,8 @@ final class PlannerViewModel {
 
     // MARK: - Planner: Add Workout for Athlete
 
-    /// Creates a coach-attributed PlannedWorkout on behalf of the athlete.
+    /// Creates a coach-attributed PlannedWorkout on behalf of the athlete,
+    /// then publishes it to CloudKit's public database so the athlete's device can sync it.
     func addWorkout(
         for relationship: PlannerRelationship,
         date: Date,
@@ -225,7 +226,71 @@ final class PlannerViewModel {
             createdByPlannerRelationshipId: relationship.id.uuidString,
             plannerDisplayName: relationship.plannerDisplayName
         )
+        workout.coachAssignmentId = "coachassign-\(workout.id.uuidString)"
         modelContext.insert(workout)
+
+        let payload = CoachAssignmentPayload(
+            id: workout.id.uuidString,
+            date: date,
+            workoutTypeRaw: workoutType.rawValue,
+            title: title,
+            plannedDistanceMiles: plannedDistanceMiles,
+            plannedDurationSeconds: plannedDurationSeconds,
+            strengthTypeRaw: StrengthType.unspecified.rawValue,
+            crossTrainingActivityTypeRaw: crossTrainingActivityType.rawValue,
+            runCategoryRaw: runCategory.rawValue,
+            runSegmentsData: workout.runSegmentsData,
+            notes: notes,
+            postRunStrides: false,
+            intensityLevelRaw: intensityLevel.rawValue,
+            plannerDisplayName: relationship.plannerDisplayName
+        )
+        Task { try? await CoachAssignmentService.shared.publish(payload: payload, inviteCode: relationship.inviteCode) }
+    }
+
+    // MARK: - Athlete: Sync coach workouts
+
+    /// Pulls coach-assigned workouts from CloudKit into local SwiftData.
+    /// Safe to call on every Plan tab appear — deduplicates by coachAssignmentId.
+    @MainActor
+    func syncCoachWorkouts(
+        forRelationship invite: PlannerRelationship,
+        modelContext: ModelContext
+    ) async {
+        let allPlanned = (try? modelContext.fetch(FetchDescriptor<PlannedWorkout>())) ?? []
+        guard let records = try? await CoachAssignmentService.shared.fetchAll(inviteCode: invite.inviteCode) else { return }
+
+        let existingIds = Set(allPlanned.compactMap(\.coachAssignmentId))
+        let dismissed   = Set(UserDefaults.standard.stringArray(forKey: "dismissedCoachAssignments") ?? [])
+
+        for item in records {
+            let ckId = "coachassign-\(item.workoutId)"
+
+            if item.isDeleted {
+                if let local = allPlanned.first(where: { $0.coachAssignmentId == ckId }) {
+                    modelContext.delete(local)
+                }
+            } else if !dismissed.contains(ckId), !existingIds.contains(ckId), let p = item.payload {
+                let w = PlannedWorkout(
+                    date: p.date,
+                    workoutType: WorkoutType(rawValue: p.workoutTypeRaw) ?? .running,
+                    title: p.title,
+                    plannedDistanceMiles: p.plannedDistanceMiles,
+                    plannedDurationSeconds: p.plannedDurationSeconds,
+                    strengthType: StrengthType(rawValue: p.strengthTypeRaw) ?? .unspecified,
+                    crossTrainingActivityType: CrossTrainingActivityType(rawValue: p.crossTrainingActivityTypeRaw) ?? .other,
+                    runCategory: RunCategory(rawValue: p.runCategoryRaw) ?? .none,
+                    notes: p.notes,
+                    postRunStrides: p.postRunStrides,
+                    intensityLevel: IntensityLevel(rawValue: p.intensityLevelRaw) ?? .moderate,
+                    plannerDisplayName: p.plannerDisplayName
+                )
+                w.runSegmentsData   = p.runSegmentsData
+                w.coachAssignmentId = ckId
+                // createdByPlannerRelationshipId stays nil so the athlete's plan filter shows it
+                modelContext.insert(w)
+            }
+        }
     }
 
     // MARK: - Helpers

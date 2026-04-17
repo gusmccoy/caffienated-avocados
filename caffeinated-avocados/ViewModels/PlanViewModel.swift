@@ -50,7 +50,9 @@ final class PlanViewModel {
     /// Filters planned workouts to a specific day (matched by startOfDay).
     func workouts(for day: Date, from all: [PlannedWorkout]) -> [PlannedWorkout] {
         let target = day.startOfDay
-        return all.filter { $0.date == target }
+        return all
+            .filter { $0.date == target }
+            .sorted { $0.displayOrder < $1.displayOrder }
     }
 
     /// Sum of planned miles for running and cross-training workouts in the provided list.

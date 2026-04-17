@@ -252,6 +252,11 @@ private struct AthleteDaySection: View {
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
+        // Mark the CK record as deleted so athlete's next sync removes it
+        if workout.coachAssignmentId != nil {
+            let workoutId = workout.id.uuidString
+            Task { await CoachAssignmentService.shared.markDeleted(workoutId: workoutId) }
+        }
         let identifier = workout.calendarEventIdentifier
         modelContext.delete(workout)
         if let id = identifier {
@@ -434,11 +439,13 @@ struct CoachAddPlannedWorkoutView: View {
     }
 
     private func createNew() {
+        let title = vm.formTitle.isEmpty ? defaultTitle : vm.formTitle
+        let distance = vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0.0
         let workout = PlannedWorkout(
             date: vm.sheetTargetDate,
             workoutType: vm.formType,
-            title: vm.formTitle.isEmpty ? defaultTitle : vm.formTitle,
-            plannedDistanceMiles: vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0,
+            title: title,
+            plannedDistanceMiles: distance,
             plannedDurationSeconds: vm.formDurationSeconds,
             crossTrainingActivityType: vm.formCrossTrainingActivityType,
             runCategory: vm.formRunCategory,
@@ -449,7 +456,27 @@ struct CoachAddPlannedWorkoutView: View {
         // Tag workout as coach-created
         workout.createdByPlannerRelationshipId = relationship.id.uuidString
         workout.plannerDisplayName = relationship.plannerDisplayName
+        workout.coachAssignmentId = "coachassign-\(workout.id.uuidString)"
         modelContext.insert(workout)
+
+        // Publish to CloudKit public DB so the athlete's device can sync it
+        let payload = CoachAssignmentPayload(
+            id: workout.id.uuidString,
+            date: vm.sheetTargetDate,
+            workoutTypeRaw: vm.formType.rawValue,
+            title: title,
+            plannedDistanceMiles: distance,
+            plannedDurationSeconds: vm.formDurationSeconds,
+            strengthTypeRaw: StrengthType.unspecified.rawValue,
+            crossTrainingActivityTypeRaw: vm.formCrossTrainingActivityType.rawValue,
+            runCategoryRaw: vm.formRunCategory.rawValue,
+            runSegmentsData: workout.runSegmentsData,
+            notes: vm.formNotes,
+            postRunStrides: false,
+            intensityLevelRaw: vm.formIntensity.rawValue,
+            plannerDisplayName: relationship.plannerDisplayName
+        )
+        Task { try? await CoachAssignmentService.shared.publish(payload: payload, inviteCode: relationship.inviteCode) }
     }
 
     private func updateExisting(_ workout: PlannedWorkout) {

@@ -6,16 +6,32 @@ import SwiftData
 
 struct PlanView: View {
     @State private var vm = PlanViewModel()
+    @State private var plannerVM = PlannerViewModel()
     private let calendarService = CalendarService()
 
     @Query(sort: [
         SortDescriptor(\PlannedWorkout.date, order: .forward),
         SortDescriptor(\PlannedWorkout.displayOrder, order: .forward)
     ])
-    private var allPlanned: [PlannedWorkout]
+    private var allPlannedRaw: [PlannedWorkout]
+
+    /// Personal plan: excludes workouts the coach created for athletes (those have
+    /// createdByPlannerRelationshipId set). Synced coach workouts on the athlete's
+    /// device intentionally leave that field nil, so they pass through.
+    private var allPlanned: [PlannedWorkout] {
+        allPlannedRaw.filter { $0.createdByPlannerRelationshipId == nil }
+    }
 
     @Query(sort: \Race.date, order: .forward)
     private var allRaces: [Race]
+
+    @Query(sort: \PlannerRelationship.createdAt, order: .forward)
+    private var allRelationships: [PlannerRelationship]
+
+    /// Accepted relationships where the current user is the athlete (used for sync).
+    private var acceptedCoachRelationships: [PlannerRelationship] {
+        allRelationships.filter { $0.currentUserIsAthlete && $0.status == .accepted }
+    }
 
     @State private var showingAddRace = false
     @State private var editingRace: Race? = nil
@@ -123,6 +139,11 @@ struct PlanView: View {
             }
             .sheet(isPresented: $showingTemplateLibrary) {
                 TemplateLibraryView()
+            }
+            .task {
+                for relationship in acceptedCoachRelationships {
+                    await plannerVM.syncCoachWorkouts(forRelationship: relationship, modelContext: modelContext)
+                }
             }
         }
     }
@@ -529,81 +550,16 @@ private struct DaySection: View {
                     .padding(.vertical, 2)
             } else {
                 ForEach(Array(workouts.enumerated()), id: \.element.id) { index, workout in
-                    PlannedWorkoutRow(workout: workout)
-                        .draggable(workout)
-                        .dropDestination(for: PlannedWorkout.self) { dropped, _ in
-                            if !dropped.isEmpty, let droppedWorkout = dropped.first {
-                                reorderWorkouts(movedWorkout: droppedWorkout, targetIndex: index, from: workouts)
-                            }
-                            return true
+                    InteractivePlannedWorkoutRow(
+                        workout: workout,
+                        index: index,
+                        allWorkouts: workouts,
+                        vm: vm,
+                        onDelete: { deleteWorkout($0) },
+                        onReorder: { moved, target, workouts in
+                            reorderWorkouts(movedWorkout: moved, targetIndex: target, from: workouts)
                         }
-                        // Delete: athletes cannot delete coach-created workouts
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            if !workout.isCoachCreated {
-                                Button(role: .destructive) {
-                                    deleteWorkout(workout)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                            if !workout.isCompleted {
-                                Button {
-                                    vm.markPlanComplete(workout, modelContext: modelContext)
-                                } label: {
-                                    Label("Mark Done", systemImage: "checkmark.circle.fill")
-                                }
-                                .tint(.green)
-                            } else if workout.completedByStravaActivityId?.hasPrefix("manual_") == true {
-                                Button {
-                                    vm.unmarkPlanComplete(workout, modelContext: modelContext)
-                                } label: {
-                                    Label("Unmark", systemImage: "xmark.circle")
-                                }
-                                .tint(.orange)
-                            }
-                            // Edit: athletes cannot edit coach-created workouts
-                            if !workout.isCompleted && !workout.isCoachCreated {
-                                Button {
-                                    vm.openEditSheet(for: workout)
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.blue)
-                            }
-                        }
-                        .contextMenu {
-                            if !workout.isCompleted {
-                                // Edit blocked for coach-created workouts
-                                if !workout.isCoachCreated {
-                                    Button {
-                                        vm.openEditSheet(for: workout)
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                }
-                                Button {
-                                    vm.markPlanComplete(workout, modelContext: modelContext)
-                                } label: {
-                                    Label("Mark as Done", systemImage: "checkmark.circle.fill")
-                                }
-                            } else if workout.completedByStravaActivityId?.hasPrefix("manual_") == true {
-                                Button {
-                                    vm.unmarkPlanComplete(workout, modelContext: modelContext)
-                                } label: {
-                                    Label("Unmark as Done", systemImage: "xmark.circle")
-                                }
-                            }
-                            // Delete blocked for coach-created workouts
-                            if !workout.isCoachCreated {
-                                Button(role: .destructive) {
-                                    deleteWorkout(workout)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
+                    )
                 }
             }
         }
@@ -611,6 +567,12 @@ private struct DaySection: View {
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
+        // Prevent re-sync of coach-assigned workouts the athlete explicitly removed
+        if let ckId = workout.coachAssignmentId {
+            var dismissed = UserDefaults.standard.stringArray(forKey: "dismissedCoachAssignments") ?? []
+            dismissed.append(ckId)
+            UserDefaults.standard.set(dismissed, forKey: "dismissedCoachAssignments")
+        }
         let identifier = workout.calendarEventIdentifier
         modelContext.delete(workout)
         if let id = identifier {
@@ -635,6 +597,118 @@ private struct DaySection: View {
         // Update displayOrder for all workouts
         for (index, workout) in updatedWorkouts.enumerated() {
             workout.displayOrder = index
+        }
+    }
+}
+
+// MARK: - Interactive Planned Workout Row
+
+private struct InteractivePlannedWorkoutRow: View {
+    let workout: PlannedWorkout
+    let index: Int
+    let allWorkouts: [PlannedWorkout]
+    var vm: PlanViewModel
+    let onDelete: (PlannedWorkout) -> Void
+    let onReorder: (PlannedWorkout, Int, [PlannedWorkout]) -> Void
+    
+    @Environment(\.modelContext) private var modelContext
+    
+    var body: some View {
+        PlannedWorkoutRow(workout: workout)
+            .draggable(workout)
+            .dropDestination(for: PlannedWorkout.self) { droppedWorkouts, _ in
+                handleDrop(droppedWorkouts: droppedWorkouts)
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                trailingSwipeActions
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                leadingSwipeActions
+            }
+            .contextMenu {
+                contextMenuContent
+            }
+    }
+    
+    private func handleDrop(droppedWorkouts: [PlannedWorkout]) -> Bool {
+        guard let droppedWorkout = droppedWorkouts.first else { return false }
+        
+        onReorder(droppedWorkout, index, allWorkouts)
+        return true
+    }
+    
+    @ViewBuilder
+    private var trailingSwipeActions: some View {
+        // Delete: athletes cannot delete coach-created workouts
+        if !workout.isCoachCreated {
+            Button(role: .destructive) {
+                onDelete(workout)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var leadingSwipeActions: some View {
+        if !workout.isCompleted {
+            Button {
+                vm.markPlanComplete(workout, modelContext: modelContext)
+            } label: {
+                Label("Mark Done", systemImage: "checkmark.circle.fill")
+            }
+            .tint(.green)
+        } else if workout.completedByStravaActivityId?.hasPrefix("manual_") == true {
+            Button {
+                vm.unmarkPlanComplete(workout, modelContext: modelContext)
+            } label: {
+                Label("Unmark", systemImage: "xmark.circle")
+            }
+            .tint(.orange)
+        }
+        
+        // Edit: athletes cannot edit coach-created workouts
+        if !workout.isCompleted && !workout.isCoachCreated {
+            Button {
+                vm.openEditSheet(for: workout)
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .tint(.blue)
+        }
+    }
+    
+    @ViewBuilder
+    private var contextMenuContent: some View {
+        if !workout.isCompleted {
+            // Edit blocked for coach-created workouts
+            if !workout.isCoachCreated {
+                Button {
+                    vm.openEditSheet(for: workout)
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+            }
+            Button {
+                vm.markPlanComplete(workout, modelContext: modelContext)
+            } label: {
+                Label("Mark as Done", systemImage: "checkmark.circle.fill")
+            }
+        } else if workout.completedByStravaActivityId?.hasPrefix("manual_") == true {
+            Button {
+                vm.unmarkPlanComplete(workout, modelContext: modelContext)
+            } label: {
+                Label("Unmark as Done", systemImage: "xmark.circle")
+            }
+        }
+        
+        // Delete blocked for coach-created workouts
+        if !workout.isCoachCreated {
+            Button(role: .destructive) {
+                onDelete(workout)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
         }
     }
 }
@@ -687,8 +761,10 @@ struct PlannedWorkoutRow: View {
                             .padding(.vertical, 1)
                             .background(Color.green.opacity(0.12), in: Capsule())
                     }
-                    // Coach-created badge
-                    if workout.isCoachCreated {
+                    // Coach badge — uses plannerDisplayName (set on both coach's device
+                    // and athlete's device via CK sync) instead of isCoachCreated which
+                    // is false for synced workouts on the athlete's device.
+                    if workout.plannerDisplayName != nil {
                         HStack(spacing: 3) {
                             Image(systemName: "person.badge.shield.checkmark.fill")
                                 .font(.system(size: 8))

@@ -3,6 +3,8 @@
 
 import Foundation
 import SwiftData
+import CoreTransferable
+import UniformTypeIdentifiers
 
 // MARK: - Run Planning Enums
 
@@ -267,6 +269,12 @@ final class PlannedWorkout {
     /// True when this workout was created by a planner (coach) on the athlete's behalf.
     var isCoachCreated: Bool { createdByPlannerRelationshipId != nil }
 
+    /// The CloudKit public-DB record ID (`coachassign-{workoutId}`) of the
+    /// CoachAssignment record that delivered this workout to the athlete's device.
+    /// Set on *both* sides: coach's device (after publish) and athlete's device (after sync).
+    /// Used to deduplicate syncs and to mark the CK record deleted when the coach removes it.
+    var coachAssignmentId: String? = nil
+
     init(
         date: Date,
         workoutType: WorkoutType,
@@ -309,3 +317,98 @@ final class PlannedWorkout {
         self.displayOrder = displayOrder
     }
 }
+
+// MARK: - Transferable Conformance
+
+extension PlannedWorkout: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(contentType: .plannedWorkout) { workout in
+            // Encode the workout data as JSON
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            
+            let data = PlannedWorkoutTransferData(
+                id: workout.id,
+                date: workout.date,
+                workoutType: workout.workoutType,
+                title: workout.title,
+                plannedDistanceMiles: workout.plannedDistanceMiles,
+                plannedDurationSeconds: workout.plannedDurationSeconds,
+                strengthTypeRaw: workout.strengthTypeRaw,
+                crossTrainingActivityTypeRaw: workout.crossTrainingActivityTypeRaw,
+                runCategoryRaw: workout.runCategoryRaw,
+                runSegmentsData: workout.runSegmentsData,
+                routePolylineData: workout.routePolylineData,
+                routeWaypointsData: workout.routeWaypointsData,
+                routeDistanceMiles: workout.routeDistanceMiles,
+                notes: workout.notes,
+                postRunStrides: workout.postRunStrides,
+                intensityLevel: workout.intensityLevel,
+                displayOrder: workout.displayOrder
+            )
+            
+            return try encoder.encode(data)
+        } importing: { data in
+            // Decode the workout data from JSON
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            
+            let transferData = try decoder.decode(PlannedWorkoutTransferData.self, from: data)
+            
+            let workout = PlannedWorkout(
+                date: transferData.date,
+                workoutType: transferData.workoutType,
+                title: transferData.title,
+                plannedDistanceMiles: transferData.plannedDistanceMiles,
+                plannedDurationSeconds: transferData.plannedDurationSeconds,
+                strengthType: StrengthType(rawValue: transferData.strengthTypeRaw) ?? .unspecified,
+                crossTrainingActivityType: CrossTrainingActivityType(rawValue: transferData.crossTrainingActivityTypeRaw) ?? .other,
+                runCategory: RunCategory(rawValue: transferData.runCategoryRaw) ?? .none,
+                runSegments: [],
+                notes: transferData.notes,
+                postRunStrides: transferData.postRunStrides,
+                intensityLevel: transferData.intensityLevel,
+                displayOrder: transferData.displayOrder
+            )
+            
+            // Restore the encoded data directly
+            workout.runSegmentsData = transferData.runSegmentsData
+            workout.routePolylineData = transferData.routePolylineData
+            workout.routeWaypointsData = transferData.routeWaypointsData
+            workout.routeDistanceMiles = transferData.routeDistanceMiles
+            
+            return workout
+        }
+    }
+}
+
+// MARK: - Transfer Data Structure
+
+/// Codable transfer representation for PlannedWorkout (used for drag-and-drop, copy-paste)
+private struct PlannedWorkoutTransferData: Codable {
+    var id: UUID
+    var date: Date
+    var workoutType: WorkoutType
+    var title: String
+    var plannedDistanceMiles: Double
+    var plannedDurationSeconds: Int
+    var strengthTypeRaw: String
+    var crossTrainingActivityTypeRaw: String
+    var runCategoryRaw: String
+    var runSegmentsData: Data
+    var routePolylineData: Data
+    var routeWaypointsData: Data
+    var routeDistanceMiles: Double
+    var notes: String
+    var postRunStrides: Bool
+    var intensityLevel: IntensityLevel
+    var displayOrder: Int
+}
+
+extension UTType {
+    static var plannedWorkout: UTType {
+        UTType(exportedAs: "com.yourapp.plannedworkout")
+    }
+}
+
+
