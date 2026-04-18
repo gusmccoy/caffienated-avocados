@@ -108,12 +108,14 @@ final class PlanViewModel {
     var formIsDistanceManuallySet: Bool = false
 
     /// Distance calculated from the current run segments (0 when none have distances set).
+    /// Hill repeats are doubled to account for the downhill recovery between reps.
     var formCalculatedDistanceMiles: Double {
         guard formType == .running else { return 0 }
         return formRunSegments.reduce(0.0) { total, seg in
             switch seg.segmentType {
             case .repeats, .fartlek:
-                return total + seg.distanceMiles * Double(max(1, seg.intervalCount))
+                let repDist = seg.distanceMiles * Double(max(1, seg.intervalCount))
+                return total + (seg.isHills ? repDist * 2.0 : repDist)
             case .ladder:
                 return total + seg.ladderDistances.reduce(0.0, +)
             default:

@@ -169,7 +169,7 @@ struct AddRunSegmentView: View {
 
             // MARK: Volume — Intervals
             else if segmentType.hasIntervals {
-                Section("Intervals") {
+                Section {
                     Stepper("Repetitions: \(intervalCount)", value: $intervalCount, in: 1...50)
                     HStack {
                         Text("Distance per Rep")
@@ -182,8 +182,12 @@ struct AddRunSegmentView: View {
                         }
                         .pickerStyle(.menu)
                     }
-                    if segmentType == .repeats {
-                        Toggle("Hills", isOn: $isHills)
+                    Toggle("Hill Repeats", isOn: $isHills)
+                } header: {
+                    Text("Intervals")
+                } footer: {
+                    if isHills {
+                        Text("Distance is doubled in calculations — each rep counts the uphill effort plus the downhill recovery jog.")
                     }
                 }
 
@@ -270,7 +274,7 @@ struct AddRunSegmentView: View {
         seg.durationMinutes      = segmentType.isLadder || segmentType.hasIntervals ? 0 : durationMinutes
         seg.intervalCount        = segmentType.hasIntervals ? intervalCount : 0
         seg.recoveryDurationSeconds = (segmentType.hasIntervals || segmentType.isLadder) ? recoveryDurationSeconds : 0
-        seg.isHills              = segmentType == .repeats ? isHills : false
+        seg.isHills              = segmentType.hasIntervals ? isHills : false
         seg.ladderDistances      = segmentType.isLadder ? ladderDistances : []
         seg.notes                = notes
         onSave(seg)
