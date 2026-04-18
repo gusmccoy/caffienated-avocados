@@ -91,6 +91,10 @@ final class PlanViewModel {
     var formRoutePolyline: [RouteCoordinate] = []
     var formRouteDistanceMiles: Double = 0
     var calendarAuthorizationDenied: Bool = false
+    /// Whether the user has explicitly set a time for this workout.
+    var formPlannedTimeEnabled: Bool = false
+    /// Planned time as minutes since midnight (only meaningful when formPlannedTimeEnabled is true).
+    var formPlannedTimeMinutes: Int = 0
 
     var formDurationSeconds: Int { formHours * 3600 + formMinutes * 60 + formSeconds }
 
@@ -146,6 +150,10 @@ final class PlanViewModel {
         formRouteDistanceMiles = 0
         formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
+        // Pre-fill planned time from the user's default (0 = no default set)
+        let defaultMinutes = UserDefaults.standard.integer(forKey: "defaultPlannedTimeMinutesSinceMidnight")
+        formPlannedTimeEnabled = defaultMinutes > 0
+        formPlannedTimeMinutes = defaultMinutes > 0 ? defaultMinutes : 480 // 8 AM fallback for picker
         isShowingAddSheet = true
     }
 
@@ -171,6 +179,9 @@ final class PlanViewModel {
         formRouteDistanceMiles = workout.routeDistanceMiles
         // If stored distance differs from segment total, the user overrode it manually
         formIsDistanceManuallySet = workout.plannedDistanceMiles > 0 && !workout.distanceIsFromSegments
+        formPlannedTimeEnabled = workout.plannedTimeMinutesSinceMidnight > 0
+        formPlannedTimeMinutes = workout.plannedTimeMinutesSinceMidnight > 0
+            ? workout.plannedTimeMinutesSinceMidnight : 480
         calendarAuthorizationDenied = false
         isShowingAddSheet = true
     }
@@ -195,6 +206,8 @@ final class PlanViewModel {
         formRouteDistanceMiles = 0
         formIsDistanceManuallySet = false
         calendarAuthorizationDenied = false
+        formPlannedTimeEnabled = false
+        formPlannedTimeMinutes = 480
     }
 
     // MARK: - Templates

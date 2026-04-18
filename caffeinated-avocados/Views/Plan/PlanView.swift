@@ -836,6 +836,17 @@ struct PlannedWorkoutRow: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+
+                    if workout.plannedTimeMinutesSinceMidnight > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.tertiary)
+                            Text(formattedPlannedTime)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 // Run segments summary
@@ -913,5 +924,14 @@ struct PlannedWorkoutRow: View {
             return String(format: "%.2f km", miles.milesToKm)
         }
         return String(format: "%.2f mi", miles)
+    }
+
+    private var formattedPlannedTime: String {
+        let mins = workout.plannedTimeMinutesSinceMidnight
+        let h = mins / 60
+        let m = mins % 60
+        let ampm = h < 12 ? "AM" : "PM"
+        let displayHour = h == 0 ? 12 : (h > 12 ? h - 12 : h)
+        return String(format: "%d:%02d %@", displayHour, m, ampm)
     }
 }

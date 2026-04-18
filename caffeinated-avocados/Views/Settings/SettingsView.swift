@@ -233,9 +233,30 @@ struct UnitsPreferenceView: View {
     @AppStorage("weightUnit")   private var weightUnit: String   = WeightUnit.lbs.rawValue
     @AppStorage("planCompletionThreshold") private var planCompletionThreshold: Double = 5.0
     @AppStorage("defaultPaceSecondsPerMile") private var defaultPaceSecondsPerMile: Int = 0
+    @AppStorage("defaultPlannedTimeMinutesSinceMidnight") private var defaultPlannedTimeMinutes: Int = 0
 
     private var paceMinutes: Int { defaultPaceSecondsPerMile / 60 }
     private var paceSeconds: Int { defaultPaceSecondsPerMile % 60 }
+
+    /// Converts defaultPlannedTimeMinutes ↔ a full Date (time component only) for DatePicker.
+    private var defaultPlannedTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                let mins = defaultPlannedTimeMinutes > 0 ? defaultPlannedTimeMinutes : 360
+                return Calendar.current.date(
+                    bySettingHour: mins / 60,
+                    minute: mins % 60,
+                    second: 0,
+                    of: .now
+                ) ?? .now
+            },
+            set: { date in
+                let h = Calendar.current.component(.hour, from: date)
+                let m = Calendar.current.component(.minute, from: date)
+                defaultPlannedTimeMinutes = h * 60 + m
+            }
+        )
+    }
 
     var body: some View {
         unitsForm
@@ -274,6 +295,26 @@ struct UnitsPreferenceView: View {
             } footer: {
                 Text("When a synced activity is within this percentage of a planned workout's distance or duration, the planned workout is marked as completed.")
             }
+            Section {
+                Toggle("Set a default time", isOn: Binding(
+                    get: { defaultPlannedTimeMinutes > 0 },
+                    set: { enabled in
+                        defaultPlannedTimeMinutes = enabled ? 360 : 0  // default to 6 AM when first enabled
+                    }
+                ))
+                if defaultPlannedTimeMinutes > 0 {
+                    DatePicker(
+                        "Default Time",
+                        selection: defaultPlannedTimeBinding,
+                        displayedComponents: .hourAndMinute
+                    )
+                }
+            } header: {
+                Text("Default Planned Workout Time")
+            } footer: {
+                Text("When adding a new planned workout, the time field will be pre-filled with this value. You can override it per workout.")
+            }
+
             Section {
                 Stepper(value: Binding(
                     get: { paceMinutes },
