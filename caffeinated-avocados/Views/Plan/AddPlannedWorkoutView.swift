@@ -316,12 +316,20 @@ struct AddPlannedWorkoutView: View {
                 }
             }
             // Edit existing segment
+            // Safety: nil out editingSegmentIndex BEFORE removing the segment so that
+            // SwiftUI sees item = nil and skips the animation-frame re-render; the bounds
+            // guard below is a secondary defence against any residual re-evaluation.
             .sheet(item: $editingSegmentIndex) { idx in
-                AddRunSegmentView(
-                    existingSegment: vm.formRunSegments[idx],
-                    onSave: { vm.formRunSegments[idx] = $0 },
-                    onDelete: { vm.formRunSegments.remove(at: idx) }
-                )
+                if idx < vm.formRunSegments.count {
+                    AddRunSegmentView(
+                        existingSegment: vm.formRunSegments[idx],
+                        onSave: { vm.formRunSegments[idx] = $0 },
+                        onDelete: {
+                            editingSegmentIndex = nil
+                            vm.formRunSegments.remove(at: idx)
+                        }
+                    )
+                }
             }
             // Route planner
             #if os(macOS)
