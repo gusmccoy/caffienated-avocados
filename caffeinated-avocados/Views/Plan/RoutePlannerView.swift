@@ -183,7 +183,7 @@ struct RoutePlannerView: View {
                         Text(item.name ?? "Unknown")
                             .font(.subheadline)
                             .foregroundStyle(.primary)
-                        if let subtitle = item.placemark.title {
+                        if let subtitle = item.addressRepresentations?.cityWithContext ?? item.addressRepresentations?.regionName {
                             Text(subtitle)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -477,7 +477,7 @@ struct RoutePlannerView: View {
     private func selectSearchResult(_ item: MKMapItem) {
         searchResults = []
         searchText = ""
-        let coord = item.placemark.coordinate
+        let coord = item.location.coordinate
         cameraPosition = .region(MKCoordinateRegion(
             center: coord,
             latitudinalMeters: 2000,
@@ -490,8 +490,8 @@ struct RoutePlannerView: View {
     private func calculateSegment(from: CLLocationCoordinate2D, to: CLLocationCoordinate2D) {
         isCalculating = true
         let request = MKDirections.Request()
-        request.source = MKMapItem(placemark: MKPlacemark(coordinate: from))
-        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to))
+        request.source = MKMapItem(location: CLLocation(latitude: from.latitude, longitude: from.longitude), address: nil)
+        request.destination = MKMapItem(location: CLLocation(latitude: to.latitude, longitude: to.longitude), address: nil)
         request.transportType = .walking
 
         MKDirections(request: request).calculate { response, error in
@@ -540,8 +540,8 @@ struct RoutePlannerView: View {
 
         isCalculating = true
         let request = MKDirections.Request()
-        request.source = MKMapItem(placemark: MKPlacemark(coordinate: from))
-        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: to))
+        request.source = MKMapItem(location: CLLocation(latitude: from.latitude, longitude: from.longitude), address: nil)
+        request.destination = MKMapItem(location: CLLocation(latitude: to.latitude, longitude: to.longitude), address: nil)
         request.transportType = .walking
 
         MKDirections(request: request).calculate { response, error in
