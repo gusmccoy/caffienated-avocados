@@ -1,6 +1,7 @@
 // Services/CalendarService.swift
 // EventKit wrapper for creating and removing calendar events for planned workouts.
 
+import CoreLocation
 import EventKit
 import Foundation
 
@@ -57,6 +58,12 @@ final class CalendarService {
         event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: workout.date) ?? workout.date
         event.notes = buildNotes(for: workout)
         event.calendar = store.defaultCalendarForNewEvents
+
+        // If the planned workout has a mapped route, set the starting waypoint as the
+        // calendar event's location so it shows a tappable map pin in the Calendar app.
+        if let startWaypoint = workout.routeWaypoints.first {
+            await applyStartLocation(to: event, waypoint: startWaypoint)
+        }
 
         do {
             try store.save(event, span: .thisEvent)
@@ -124,5 +131,49 @@ final class CalendarService {
             parts.append(workout.notes)
         }
         return parts.joined(separator: "\n")
+    }
+
+    // MARK: - Route Location
+
+    /// Writes the start waypoint of a planned route as the calendar event's structured
+    /// location, giving the Calendar app a tappable map pin.
+    /// Reverse-geocodes for a human-readable address; falls back to a coordinate string
+    /// if geocoding is unavailable or fails.
+    private func applyStartLocation(to event: EKEvent, waypoint: RouteWaypoint) async {
+        let clLocation = CLLocation(latitude: waypoint.latitude, longitude: waypoint.longitude)
+        let title = await reverseGeocodeTitle(for: clLocation)
+            ?? String(format: "%.5f°, %.5f°", waypoint.latitude, waypoint.longitude)
+
+        let structured = EKStructuredLocation(title: title)
+        structured.geoLocation = clLocation
+        event.structuredLocation = structured
+    }
+
+    /// Returns a short human-readable address for `location` via reverse geocoding,
+    /// or `nil` if the geocoder is unavailable or returns no results.
+    private func reverseGeocodeTitle(for location: CLLocation) async -> String? {
+        return try? await withCheckedThrowingContinuation { continuation in
+            CLGeocoder().reverseGeocodeLocation(location) { placemarks, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let placemark = placemarks?.first else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                var parts: [String] = []
+                // `name` is populated for named places (parks, gyms, etc.) and street
+                // addresses — prefer it; otherwise build from sub-components.
+                if let name = placemark.name, !name.isEmpty {
+                    parts.append(name)
+                } else {
+                    if let number = placemark.subThoroughfare { parts.append(number) }
+                    if let street = placemark.thoroughfare    { parts.append(street) }
+                }
+                if let city = placemark.locality { parts.append(city) }
+                continuation.resume(returning: parts.isEmpty ? nil : parts.joined(separator: ", "))
+            }
+        }
     }
 }
