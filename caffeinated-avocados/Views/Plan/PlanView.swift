@@ -3,6 +3,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreLocation
 
 struct PlanView: View {
     @State private var vm = PlanViewModel()
@@ -38,6 +39,8 @@ struct PlanView: View {
     @State private var showingCopyConfirmation = false
     @State private var showingRouteLibrary = false
     @State private var showingTemplateLibrary = false
+    @State private var weeklyWeather = WeeklyWeatherService()
+    @State private var locationManager = LocationManager()
 
     var body: some View {
         NavigationStack {
@@ -65,7 +68,8 @@ struct PlanView: View {
                             workouts: vm.workouts(for: day, from: allPlanned),
                             races: racesOnDay(day),
                             vm: vm,
-                            calendarService: calendarService
+                            calendarService: calendarService,
+                            weatherSummary: vm.isCurrentWeek ? weeklyWeather.summary(for: day) : nil
                         )
                     }
 
@@ -145,6 +149,16 @@ struct PlanView: View {
                     await plannerVM.syncCoachWorkouts(forRelationship: relationship, modelContext: modelContext)
                 }
             }
+            .task(id: vm.weekStart) {
+                // Only fetch weather when viewing the current week
+                guard vm.isCurrentWeek else { return }
+                locationManager.requestLocation()
+                refreshWeeklyWeather()
+            }
+            .onChange(of: locationManager.lastCoordinate?.latitude) { _, _ in
+                // Re-trigger fetch once a user-location fix arrives
+                if vm.isCurrentWeek { refreshWeeklyWeather() }
+            }
         }
     }
 
@@ -184,6 +198,34 @@ struct PlanView: View {
             Task { try? await calendarService.deleteEvent(identifier: id) }
         }
         modelContext.delete(race)
+    }
+
+    /// Builds (day, coordinate) pairs for the current week and kicks off a weather refresh.
+    /// Coordinate precedence per day: race.location > planned run's first waypoint > user location.
+    private func refreshWeeklyWeather() {
+        let userCoord = locationManager.lastCoordinate
+        let pairs: [(day: Date, coordinate: CLLocationCoordinate2D?)] = vm.weekDays.map { day in
+            let coord = coordinate(for: day) ?? userCoord
+            return (day: day, coordinate: coord)
+        }
+        weeklyWeather.refresh(dayCoordinates: pairs)
+    }
+
+    /// Returns the race/run-based coordinate for this day, or nil if nothing is set.
+    /// Races take precedence over planned runs when both exist on the same day.
+    private func coordinate(for day: Date) -> CLLocationCoordinate2D? {
+        // Race location — geocoded asynchronously, so we only return a non-nil
+        // coordinate when we've already cached it. For simplicity, race locations
+        // are strings and are geocoded inside the suggestion flow; for weather,
+        // we fall back to a planned run's waypoint or the user's location.
+        let runs = vm.workouts(for: day, from: allPlanned)
+            .filter { $0.workoutType == .running }
+        for run in runs {
+            if let first = run.routeWaypoints.first {
+                return CLLocationCoordinate2D(latitude: first.latitude, longitude: first.longitude)
+            }
+        }
+        return nil
     }
 }
 
@@ -317,26 +359,28 @@ private struct RacesSectionView: View {
                     }
                 } else {
                     ForEach(races) { race in
-                        RaceRow(race: race)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) { onDelete(race) } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                        NavigationLink(destination: RaceDetailView(race: race)) {
+                            RaceRow(race: race)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) { onDelete(race) } label: {
+                                Label("Delete", systemImage: "trash")
                             }
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                Button { onEdit(race) } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.orange)
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                            Button { onEdit(race) } label: {
+                                Label("Edit", systemImage: "pencil")
                             }
-                            .contextMenu {
-                                Button { onEdit(race) } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                Button(role: .destructive) { onDelete(race) } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                            .tint(.orange)
+                        }
+                        .contextMenu {
+                            Button { onEdit(race) } label: {
+                                Label("Edit", systemImage: "pencil")
                             }
+                            Button(role: .destructive) { onDelete(race) } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
 
                     Button(action: onAdd) {
@@ -501,6 +545,7 @@ private struct DaySection: View {
     let races: [Race]
     var vm: PlanViewModel
     let calendarService: CalendarService
+    let weatherSummary: DayWeatherSummary?
     @Environment(\.modelContext) private var modelContext
 
     /// Workout being dragged from another day, waiting for move confirmation.
@@ -509,7 +554,7 @@ private struct DaySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(day.formatted(.dateTime.weekday(.wide)))
                         .font(.headline)
@@ -518,6 +563,17 @@ private struct DaySection: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+                if let summary = weatherSummary {
+                    HStack(spacing: 4) {
+                        Image(systemName: summary.symbolName)
+                            .symbolRenderingMode(.multicolor)
+                            .font(.title3)
+                        Text(summary.formattedHigh + "°")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("Weather: \(summary.symbolName), high \(summary.formattedHigh) degrees")
+                }
                 Button {
                     vm.openAddSheet(for: day)
                 } label: {

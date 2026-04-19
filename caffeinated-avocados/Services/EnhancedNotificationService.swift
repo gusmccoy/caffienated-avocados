@@ -30,7 +30,7 @@ struct EnhancedNotificationService {
         // Remove all previously scheduled rule-based notifications
         center.getPendingNotificationRequests { pending in
             let ruleIds = pending
-                .filter { $0.identifier.hasPrefix("rule-") }
+                .filter { $0.identifier.hasPrefix("rule-") || $0.identifier.hasPrefix("race-prep-") }
                 .map(\.identifier)
             center.removePendingNotificationRequests(withIdentifiers: ruleIds)
 
@@ -125,6 +125,34 @@ struct EnhancedNotificationService {
                     }
                 }
             }
+
+            // Schedule race prep reminders for races with checklists
+            schedulePrepReminders(races: races, now: now, calendar: calendar)
+        }
+    }
+
+    /// Schedule race prep checklist reminders at 7 days, 3 days, and 1 day before race
+    private static func schedulePrepReminders(races: [Race], now: Date, calendar: Calendar) {
+        let daysBeforeRace = [7, 3, 1]
+
+        for race in races where !race.isPast && race.racePrep != nil {
+            let prep = race.racePrep!
+            guard !prep.items.isEmpty else { continue }
+
+            let completed = prep.items.filter { $0.isCompleted }.count
+            let total = prep.items.count
+
+            for days in daysBeforeRace {
+                guard let fireDate = calendar.date(
+                    byAdding: .day,
+                    value: -days,
+                    to: race.date
+                ), fireDate > now else { continue }
+
+                let content = buildPrepReminderContent(race: race, daysUntil: days, completed: completed, total: total)
+                schedule(content: content, at: fireDate,
+                         identifier: "race-prep-\(race.id)-\(days)d")
+            }
         }
     }
 
@@ -208,6 +236,20 @@ struct EnhancedNotificationService {
                 + (race.goalTimeSeconds != nil ? " Goal: \(race.goalTimeSeconds!.formattedAsTime)." : "")
         }
         if rule.soundEnabled { content.sound = .default }
+        return content
+    }
+
+    private static func buildPrepReminderContent(
+        race: Race,
+        daysUntil: Int,
+        completed: Int,
+        total: Int
+    ) -> UNMutableNotificationContent {
+        let content = UNMutableNotificationContent()
+        content.title = "Race Prep Checklist"
+        let dayLabel = daysUntil == 1 ? "tomorrow" : "in \(daysUntil) days"
+        content.body = "\(race.name) is \(dayLabel). \(completed) of \(total) prep items done."
+        content.sound = .default
         return content
     }
 

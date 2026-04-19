@@ -58,6 +58,8 @@ final class Race {
     var calendarEventIdentifier: String?
     /// Optional fuel and nutrition plan for this race.
     @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
+    /// Optional race preparation checklist.
+    @Relationship(deleteRule: .cascade) var racePrep: RacePrep? = nil
     var createdAt: Date = Date()
 
     init(

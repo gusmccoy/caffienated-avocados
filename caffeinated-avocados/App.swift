@@ -33,6 +33,7 @@ struct McCoyFitnessApp: App {
             PlannedWorkout.self,
             Race.self,
             FuelPlan.self,
+            RacePrep.self,
             PersonalRecord.self,
             PRMilestone.self,
             NotificationRule.self,
