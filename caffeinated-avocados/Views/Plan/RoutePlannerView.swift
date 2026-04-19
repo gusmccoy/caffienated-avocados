@@ -4,6 +4,7 @@
 
 import SwiftUI
 import MapKit
+import SwiftData
 
 struct RoutePlannerView: View {
     /// Existing waypoints to resume editing (empty for a new route).
@@ -348,7 +349,7 @@ struct RoutePlannerView: View {
     private func loadRoute(_ route: SavedRoute) {
         let routeWaypoints = route.routeWaypoints
         guard routeWaypoints.count >= 2 else {
-            errorMessage = ""\(route.name)" has no map data. Open it in the planner to draw the route first."
+            errorMessage = "\"\(route.name)\" has no map data. Open it in the planner to draw the route first."
             return
         }
 

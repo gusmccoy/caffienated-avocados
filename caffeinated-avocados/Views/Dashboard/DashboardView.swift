@@ -6,6 +6,7 @@ import SwiftData
 
 struct DashboardView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var sessions: [WorkoutSession]
+    @Query(sort: \PlannedWorkout.date, order: .forward) private var allPlannedWorkouts: [PlannedWorkout]
     @State private var listVM = WorkoutListViewModel()
     @State private var showingAddWorkout = false
     @State private var showingLogRunning = false
@@ -15,6 +16,17 @@ struct DashboardView: View {
     // Grab just the 5 most recent workouts for the "Recent" section
     private var recentSessions: [WorkoutSession] {
         Array(sessions.prefix(5))
+    }
+
+    /// Computed property that checks if all planned workouts for the current week are completed.
+    private var shouldShowWeekCompletionBanner: Bool {
+        let currentWeekStart = Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: .now)
+        let weekWorkouts = allPlannedWorkouts.filter { workout in
+            let workoutWeekComponents = Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: workout.date)
+            return workoutWeekComponents.yearForWeekOfYear == currentWeekStart.yearForWeekOfYear &&
+                   workoutWeekComponents.weekOfYear == currentWeekStart.weekOfYear
+        }
+        return !weekWorkouts.isEmpty && weekWorkouts.allSatisfy { $0.isCompleted }
     }
 
     private var weeklySummary: WorkoutListViewModel.WeeklySummary {
@@ -34,6 +46,10 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     WeeklySummaryCard(summary: weeklySummary, delta: weekDelta)
+
+                    if shouldShowWeekCompletionBanner {
+                        WeekCompletionBanner()
+                    }
 
                     if !trainingSuggestions.isEmpty {
                         SuggestionsCard(suggestions: trainingSuggestions)
