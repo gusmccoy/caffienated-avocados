@@ -129,7 +129,7 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             let bestPRs = vm.prs(for: nil, from: allPRs)
             if bestPRs.isEmpty {
-                emptyState(message: "No personal records yet.\nTap + to add your first PR.")
+                emptyState(message: "No personal records yet.\n\(activateVerb) + to add your first PR.")
             } else {
                 ForEach(bestPRs) { pr in
                     PRRow(pr: pr) {
@@ -174,7 +174,7 @@ struct ProfileView: View {
             }
 
             if ytdPRs.isEmpty {
-                emptyState(message: "No YTD data yet.\nSync Strava activities with split data, then tap Update.")
+                emptyState(message: "No YTD data yet.\nSync Strava activities with split data, then \(activateVerb.lowercased()) Update.")
             } else {
                 let sorted = PRDistance.allCases.compactMap { dist in
                     ytdPRs.filter { $0.distance == dist }.min(by: { $0.timeSeconds < $1.timeSeconds })
@@ -327,7 +327,7 @@ private struct MilestoneCard: View {
             }
 
             if bestPRs.isEmpty {
-                Text("No PRs yet — tap ••• to add one.")
+                Text("No PRs yet — \(activateVerb.lowercased()) ••• to add one.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .padding(.vertical, 4)

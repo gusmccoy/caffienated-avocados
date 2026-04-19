@@ -58,7 +58,9 @@ struct LogCrossTrainingView: View {
                             Text("Miles")
                             Spacer()
                             TextField("0.00", text: $vm.distanceMiles)
+                                #if os(iOS)
                                 .keyboardType(.decimalPad)
+                                #endif
                                 .multilineTextAlignment(.trailing)
                         }
                         if vm.activityType == .cycling || vm.activityType == .hiking {
@@ -66,7 +68,9 @@ struct LogCrossTrainingView: View {
                                 Text("Elevation Gain (ft)")
                                 Spacer()
                                 TextField("0", text: $vm.elevationGainFeet)
+                                    #if os(iOS)
                                     .keyboardType(.numberPad)
+                                    #endif
                                     .multilineTextAlignment(.trailing)
                             }
                         }
@@ -79,14 +83,18 @@ struct LogCrossTrainingView: View {
                             Text("Avg Power (watts)")
                             Spacer()
                             TextField("0", text: $vm.avgPowerWatts)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                                 .multilineTextAlignment(.trailing)
                         }
                         HStack {
                             Text("Cadence (RPM)")
                             Spacer()
                             TextField("0", text: $vm.avgCadenceRPM)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                                 .multilineTextAlignment(.trailing)
                         }
                     }
@@ -98,21 +106,27 @@ struct LogCrossTrainingView: View {
                             Text("Pool Length (yards)")
                             Spacer()
                             TextField("25", text: $vm.poolLengthYards)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                                 .multilineTextAlignment(.trailing)
                         }
                         HStack {
                             Text("Laps Completed")
                             Spacer()
                             TextField("0", text: $vm.lapsCompleted)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                                 .multilineTextAlignment(.trailing)
                         }
                         HStack {
                             Text("Strokes/min")
                             Spacer()
                             TextField("0", text: $vm.strokesPerMinute)
+                                #if os(iOS)
                                 .keyboardType(.numberPad)
+                                #endif
                                 .multilineTextAlignment(.trailing)
                         }
                     }
@@ -123,21 +137,27 @@ struct LogCrossTrainingView: View {
                         Text("Avg HR (bpm)")
                         Spacer()
                         TextField("0", text: $vm.heartRateAvg)
+                            #if os(iOS)
                             .keyboardType(.numberPad)
+                            #endif
                             .multilineTextAlignment(.trailing)
                     }
                     HStack {
                         Text("Max HR (bpm)")
                         Spacer()
                         TextField("0", text: $vm.heartRateMax)
+                            #if os(iOS)
                             .keyboardType(.numberPad)
+                            #endif
                             .multilineTextAlignment(.trailing)
                     }
                     HStack {
                         Text("Calories Burned")
                         Spacer()
                         TextField("0", text: $vm.caloriesBurned)
+                            #if os(iOS)
                             .keyboardType(.numberPad)
+                            #endif
                             .multilineTextAlignment(.trailing)
                     }
                 }

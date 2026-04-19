@@ -144,7 +144,7 @@ struct AddPlannedWorkoutView: View {
                         Text("Route")
                     } footer: {
                         if vm.formRouteWaypoints.isEmpty {
-                            Text("Tap to draw a running route on Apple Maps. Distance will be calculated automatically.")
+                            Text("\(activateVerb) to draw a running route on Apple Maps. Distance will be calculated automatically.")
                         }
                     }
                 }
@@ -199,7 +199,9 @@ struct AddPlannedWorkoutView: View {
                                 Text("Miles")
                                 Spacer()
                                 TextField("0.00", value: $vm.formDistanceMiles, format: .number)
+                                    #if os(iOS)
                                     .keyboardType(.decimalPad)
+                                    #endif
                                     .multilineTextAlignment(.trailing)
                                     .onChange(of: vm.formDistanceMiles) { _, _ in
                                         if vm.formType == .running { vm.formIsDistanceManuallySet = true }

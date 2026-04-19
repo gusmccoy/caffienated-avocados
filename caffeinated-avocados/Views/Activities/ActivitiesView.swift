@@ -102,19 +102,19 @@ struct ActivitiesView: View {
             ContentUnavailableView(
                 "No Runs Yet",
                 systemImage: "figure.run.circle",
-                description: Text("Tap + to log your first run.")
+                description: Text("\(activateVerb) + to log your first run.")
             )
         case .strength:
             ContentUnavailableView(
                 "No Strength Sessions Yet",
                 systemImage: "dumbbell.fill",
-                description: Text("Tap + to log your first workout.")
+                description: Text("\(activateVerb) + to log your first workout.")
             )
         case .crossTraining:
             ContentUnavailableView(
                 "No Cross-Training Yet",
                 systemImage: "figure.cross.training",
-                description: Text("Tap + to log your first session.")
+                description: Text("\(activateVerb) + to log your first session.")
             )
         }
     }

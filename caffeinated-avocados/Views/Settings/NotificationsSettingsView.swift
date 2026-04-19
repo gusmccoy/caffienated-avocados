@@ -74,7 +74,7 @@ struct NotificationsSettingsView: View {
                         Text("No notification rules yet.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text("Tap + to add reminders for meals, hydration, fuel plans, and more.")
+                        Text("\(activateVerb) + to add reminders for meals, hydration, fuel plans, and more.")
                             .font(.caption)
                             .foregroundStyle(.tertiary)
                             .multilineTextAlignment(.center)
@@ -101,7 +101,7 @@ struct NotificationsSettingsView: View {
                 } header: {
                     Text("Active Rules")
                 } footer: {
-                    Text("Rules fire based on your upcoming planned workouts and races. Swipe left to delete.")
+                    Text("Rules fire based on your upcoming planned workouts and races. \(swipeDeleteHint)")
                 }
             }
 
@@ -111,7 +111,7 @@ struct NotificationsSettingsView: View {
                 }
                 .foregroundStyle(.orange)
             } footer: {
-                Text("Tap to re-evaluate all rules against your current plan. Happens automatically on sync.")
+                Text("\(activateVerb) to re-evaluate all rules against your current plan. Happens automatically on sync.")
             }
         }
         #if os(macOS)

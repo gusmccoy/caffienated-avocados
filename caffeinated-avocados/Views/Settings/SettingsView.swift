@@ -78,7 +78,7 @@ struct SettingsView: View {
                         Label("Overridden by Strava", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(.orange)
                     } footer: {
-                        Text("These manual entries were replaced because a matching Strava activity was found on the same day. Tap Undo to restore them.")
+                        Text("These manual entries were replaced because a matching Strava activity was found on the same day. \(activateVerb) Undo to restore them.")
                     }
                 }
             }
@@ -646,7 +646,6 @@ private struct InviteCodeSheet: View {
                 .padding(.vertical, 20)
                 .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
 
-            #if canImport(UIKit)
             Button {
                 plannerVM.copyToClipboard(plannerVM.generatedInviteCode)
             } label: {
@@ -660,7 +659,6 @@ private struct InviteCodeSheet: View {
             .tint(.orange)
             .padding(.horizontal)
             .disabled(plannerVM.isPublishingInvite)
-            #endif
 
             if plannerVM.isPublishingInvite {
                 HStack(spacing: 8) {

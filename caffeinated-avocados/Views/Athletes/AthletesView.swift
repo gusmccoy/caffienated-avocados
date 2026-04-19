@@ -363,7 +363,9 @@ struct CoachAddPlannedWorkoutView: View {
                                 Text("Miles")
                                 Spacer()
                                 TextField("0.00", value: $vm.formDistanceMiles, format: .number)
+                                    #if os(iOS)
                                     .keyboardType(.decimalPad)
+                                    #endif
                                     .multilineTextAlignment(.trailing)
                                     .onChange(of: vm.formDistanceMiles) { _, _ in
                                         if vm.formType == .running { vm.formIsDistanceManuallySet = true }
