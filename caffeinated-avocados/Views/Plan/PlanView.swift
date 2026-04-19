@@ -503,6 +503,10 @@ private struct DaySection: View {
     let calendarService: CalendarService
     @Environment(\.modelContext) private var modelContext
 
+    /// Workout being dragged from another day, waiting for move confirmation.
+    @State private var pendingMove: PlannedWorkout? = nil
+    @State private var showingMoveConfirmation = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -556,14 +560,52 @@ private struct DaySection: View {
                         allWorkouts: workouts,
                         vm: vm,
                         onDelete: { deleteWorkout($0) },
-                        onReorder: { moved, target, workouts in
-                            reorderWorkouts(movedWorkout: moved, targetIndex: target, from: workouts)
+                        onReorder: { moved, target, list in
+                            reorderWorkouts(movedWorkout: moved, targetIndex: target, from: list)
+                        },
+                        onCrossDayMove: { w in
+                            pendingMove = w
+                            showingMoveConfirmation = true
                         }
                     )
                 }
             }
         }
         .cardStyle()
+        // Container-level drop target: fires when dropping on an empty day or the
+        // day header — areas not covered by any row-level drop target.
+        .dropDestination(for: PlannedWorkout.self) { dropped, _ in
+            guard let w = dropped.first,
+                  !workouts.contains(where: { $0.id == w.id }) else { return false }
+            pendingMove = w
+            showingMoveConfirmation = true
+            return true
+        }
+        .confirmationDialog(moveDialogTitle, isPresented: $showingMoveConfirmation, titleVisibility: .visible) {
+            Button("Move Here") {
+                if let w = pendingMove { moveWorkout(w) }
+                pendingMove = nil
+            }
+            Button("Cancel", role: .cancel) { pendingMove = nil }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var moveDialogTitle: String {
+        let dayName = day.formatted(.dateTime.weekday(.wide))
+        let date = day.formatted(.dateTime.month(.abbreviated).day())
+        if let title = pendingMove?.title, !title.isEmpty {
+            return "Move \"\(title)\" to \(dayName), \(date)?"
+        }
+        return "Move workout to \(dayName), \(date)?"
+    }
+
+    /// Moves a workout from its current day to this day, appending it at the end.
+    private func moveWorkout(_ workout: PlannedWorkout) {
+        workout.date = day.startOfDay
+        // Append after any workouts already on this day
+        workout.displayOrder = workouts.count
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
@@ -594,7 +636,7 @@ private struct DaySection: View {
         let insertIndex = min(targetIndex, updatedWorkouts.count)
         updatedWorkouts.insert(movedWorkout, at: insertIndex)
 
-        // Update displayOrder for all workouts
+        // Update displayOrder for all workouts in this day
         for (index, workout) in updatedWorkouts.enumerated() {
             workout.displayOrder = index
         }
@@ -610,9 +652,12 @@ private struct InteractivePlannedWorkoutRow: View {
     var vm: PlanViewModel
     let onDelete: (PlannedWorkout) -> Void
     let onReorder: (PlannedWorkout, Int, [PlannedWorkout]) -> Void
-    
+    /// Called when the dropped workout belongs to a different day — the DaySection
+    /// parent handles the date change with a confirmation dialog.
+    let onCrossDayMove: (PlannedWorkout) -> Void
+
     @Environment(\.modelContext) private var modelContext
-    
+
     var body: some View {
         PlannedWorkoutRow(workout: workout)
             .draggable(workout)
@@ -629,11 +674,17 @@ private struct InteractivePlannedWorkoutRow: View {
                 contextMenuContent
             }
     }
-    
+
     private func handleDrop(droppedWorkouts: [PlannedWorkout]) -> Bool {
         guard let droppedWorkout = droppedWorkouts.first else { return false }
-        
-        onReorder(droppedWorkout, index, allWorkouts)
+
+        if allWorkouts.contains(where: { $0.id == droppedWorkout.id }) {
+            // Same-day drop: reorder within this day
+            onReorder(droppedWorkout, index, allWorkouts)
+        } else {
+            // Cross-day drop: delegate to DaySection for date change + confirmation
+            onCrossDayMove(droppedWorkout)
+        }
         return true
     }
     
