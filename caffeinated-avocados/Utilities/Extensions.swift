@@ -123,6 +123,26 @@ extension View {
 }
 #endif
 
+// MARK: - Platform Interaction Vocabulary
+
+/// "Click" on macOS, "Tap" on iOS — for use in help text and empty state descriptions.
+let activateVerb: String = {
+    #if os(macOS)
+    return "Click"
+    #else
+    return "Tap"
+    #endif
+}()
+
+/// "Right-click" on macOS, "Swipe left" on iOS — for swipe-action hints.
+let swipeDeleteHint: String = {
+    #if os(macOS)
+    return "Right-click to delete."
+    #else
+    return "Swipe left to delete."
+    #endif
+}()
+
 // MARK: - View Modifiers
 
 extension View {

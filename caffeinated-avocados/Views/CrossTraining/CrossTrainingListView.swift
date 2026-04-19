@@ -24,7 +24,7 @@ struct CrossTrainingListView: View {
                     ContentUnavailableView(
                         "No Cross-Training Yet",
                         systemImage: "figure.cross.training",
-                        description: Text("Tap + to log your first session.")
+                        description: Text("\(activateVerb) + to log your first session.")
                     )
                 } else {
                     List {

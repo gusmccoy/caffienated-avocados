@@ -89,7 +89,7 @@ struct FuelPlanView: View {
                 let allEntries = preEntries + midEntries + postEntries
 
                 if allEntries.isEmpty {
-                    Text("No items yet — tap Add to plan gels, fluids, and food.")
+                    Text("No items yet — \(activateVerb.lowercased()) Add to plan gels, fluids, and food.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 4)

@@ -78,9 +78,13 @@ struct LogStrengthView: View {
 
                 Section("Optional") {
                     TextField("Avg Heart Rate (bpm)", text: $vm.heartRateAvg)
+                        #if os(iOS)
                         .keyboardType(.numberPad)
+                        #endif
                     TextField("Calories Burned", text: $vm.caloriesBurned)
+                        #if os(iOS)
                         .keyboardType(.numberPad)
+                        #endif
                 }
 
                 Section("Notes") {
@@ -150,14 +154,18 @@ private struct ExerciseEditorRow: View {
                         .font(.caption).foregroundStyle(.secondary).frame(width: 40, alignment: .leading)
 
                     TextField("lbs", value: $entry.sets[i].weightLbs, format: .number)
+                        #if os(iOS)
                         .keyboardType(.decimalPad)
+                        #endif
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 70)
 
                     Text("×")
 
                     TextField("reps", value: $entry.sets[i].reps, format: .number)
+                        #if os(iOS)
                         .keyboardType(.numberPad)
+                        #endif
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 60)
 

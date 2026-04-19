@@ -25,7 +25,7 @@ struct RunningListView: View {
                     ContentUnavailableView(
                         "No Runs Yet",
                         systemImage: "figure.run.circle",
-                        description: Text("Tap + to log your first run.")
+                        description: Text("\(activateVerb) + to log your first run.")
                     )
                 } else {
                     List {

@@ -6,6 +6,8 @@ import Observation
 import SwiftData
 #if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
 #endif
 
 // MARK: - Errors
@@ -295,14 +297,17 @@ final class PlannerViewModel {
 
     // MARK: - Helpers
 
-    #if canImport(UIKit)
     func copyToClipboard(_ string: String) {
+        #if canImport(UIKit)
         UIPasteboard.general.string = string
+        #elseif canImport(AppKit)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(string, forType: .string)
+        #endif
         isCopied = true
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             isCopied = false
         }
     }
-    #endif
 }

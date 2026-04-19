@@ -24,7 +24,7 @@ struct StrengthListView: View {
                     ContentUnavailableView(
                         "No Strength Sessions Yet",
                         systemImage: "dumbbell.fill",
-                        description: Text("Tap + to log your first workout.")
+                        description: Text("\(activateVerb) + to log your first workout.")
                     )
                 } else {
                     List {
