@@ -88,7 +88,14 @@ struct AthletePlanView: View {
     private let calendarService = CalendarService()
 
     @Query(sort: \PlannedWorkout.date, order: .forward)
-    private var allPlanned: [PlannedWorkout]
+    private var allPlannedRaw: [PlannedWorkout]
+
+    /// Only workouts the coach created for this specific athlete — excludes the
+    /// coach's own personal workouts (createdByPlannerRelationshipId == nil).
+    private var allPlanned: [PlannedWorkout] {
+        let relId = relationship.id.uuidString
+        return allPlannedRaw.filter { $0.createdByPlannerRelationshipId == relId }
+    }
 
     @Query(sort: \Race.date, order: .forward)
     private var allRaces: [Race]
