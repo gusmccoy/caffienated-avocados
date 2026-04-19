@@ -105,13 +105,6 @@ struct SettingsView: View {
                 }
             }
 
-            // Data
-            Section("Data") {
-                NavigationLink("Export Workouts") {
-                    ExportView()
-                }
-            }
-
             // About
             Section("About") {
                 LabeledContent("Version") {
@@ -358,25 +351,6 @@ struct UnitsPreferenceView: View {
     }
 }
 
-struct ExportView: View {
-    @Query private var sessions: [WorkoutSession]
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "square.and.arrow.up.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.orange)
-            Text("Export \(sessions.count) Workouts")
-                .font(.title3).bold()
-            Text("Export coming soon — workouts will be available as CSV or JSON.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .navigationTitle("Export")
-    }
-}
 
 // MARK: - Planning Reminder Row
 
