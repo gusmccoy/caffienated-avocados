@@ -102,7 +102,7 @@ struct PlannedRunSegment: Codable, Identifiable {
         return paceReference.rawValue
     }
 
-    /// Short summary shown in the plan row (e.g. "4× 800m @ 5K Pace")
+    /// Short summary shown in the plan row (e.g. "4× 800m hills @ 5K Pace")
     var summaryLabel: String {
         var parts: [String] = []
 
@@ -111,7 +111,9 @@ struct PlannedRunSegment: Codable, Identifiable {
             if !steps.isEmpty { parts.append(steps) }
         } else if segmentType.hasIntervals {
             let distStr = distanceMiles > 0 ? Self.formatDistance(distanceMiles) : ""
-            parts.append("\(intervalCount)×\(distStr.isEmpty ? "" : " \(distStr)")")
+            var repStr = "\(intervalCount)×\(distStr.isEmpty ? "" : " \(distStr)")"
+            if isHills { repStr += " hills" }
+            parts.append(repStr)
         } else {
             if distanceMiles > 0 { parts.append(Self.formatDistance(distanceMiles)) }
             else if durationMinutes > 0 { parts.append("\(durationMinutes) min") }
@@ -190,11 +192,13 @@ final class PlannedWorkout {
     }
 
     /// Total distance derived from segments (repeats × count, ladder = sum of steps).
+    /// Hill repeats are doubled to account for the downhill recovery between reps.
     var segmentTotalMiles: Double {
         runSegments.reduce(0.0) { total, seg in
             switch seg.segmentType {
             case .repeats, .fartlek:
-                return total + seg.distanceMiles * Double(max(1, seg.intervalCount))
+                let repDist = seg.distanceMiles * Double(max(1, seg.intervalCount))
+                return total + (seg.isHills ? repDist * 2.0 : repDist)
             case .ladder:
                 return total + seg.ladderDistances.reduce(0.0, +)
             default:
@@ -245,6 +249,9 @@ final class PlannedWorkout {
 
     var notes: String = ""
     var postRunStrides: Bool = false
+    /// Time of day the workout is planned for, stored as minutes since midnight.
+    /// 0 means no specific time is set.
+    var plannedTimeMinutesSinceMidnight: Int = 0
     /// Optional fuel and nutrition plan for this workout.
     @Relationship(deleteRule: .cascade) var fuelPlan: FuelPlan? = nil
     var intensityLevel: IntensityLevel = IntensityLevel.moderate
@@ -293,7 +300,8 @@ final class PlannedWorkout {
         completedByStravaActivityId: String? = nil,
         createdByPlannerRelationshipId: String? = nil,
         plannerDisplayName: String? = nil,
-        displayOrder: Int = 0
+        displayOrder: Int = 0,
+        plannedTimeMinutesSinceMidnight: Int = 0
     ) {
         self.id = UUID()
         self.date = date
@@ -315,6 +323,7 @@ final class PlannedWorkout {
         self.plannerDisplayName = plannerDisplayName
         self.createdAt = .now
         self.displayOrder = displayOrder
+        self.plannedTimeMinutesSinceMidnight = plannedTimeMinutesSinceMidnight
     }
 }
 

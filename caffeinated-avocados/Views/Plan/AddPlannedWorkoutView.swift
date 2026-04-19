@@ -160,6 +160,22 @@ struct AddPlannedWorkoutView: View {
                     .pickerStyle(.segmented)
                 }
 
+                // MARK: Planned Time
+                Section {
+                    Toggle("Set a planned time", isOn: $vm.formPlannedTimeEnabled)
+                    if vm.formPlannedTimeEnabled {
+                        DatePicker(
+                            "Time",
+                            selection: plannedTimeBinding,
+                            displayedComponents: .hourAndMinute
+                        )
+                    }
+                } footer: {
+                    if !vm.formPlannedTimeEnabled {
+                        Text("Optionally set a specific time this workout is planned for. Defaults to your configured time in Settings.")
+                    }
+                }
+
                 // MARK: Distance
                 if vm.formShowsDistance {
                     let calc = vm.formCalculatedDistanceMiles
@@ -386,6 +402,26 @@ struct AddPlannedWorkoutView: View {
 
     // MARK: - Helpers
 
+    /// Converts vm.formPlannedTimeMinutes ↔ a full Date (time component only) for DatePicker.
+    private var plannedTimeBinding: Binding<Date> {
+        Binding(
+            get: {
+                let mins = vm.formPlannedTimeMinutes
+                return Calendar.current.date(
+                    bySettingHour: mins / 60,
+                    minute: mins % 60,
+                    second: 0,
+                    of: .now
+                ) ?? .now
+            },
+            set: { date in
+                let h = Calendar.current.component(.hour, from: date)
+                let m = Calendar.current.component(.minute, from: date)
+                vm.formPlannedTimeMinutes = h * 60 + m
+            }
+        )
+    }
+
     private var dateTitle: String {
         vm.sheetTargetDate.formatted(date: .complete, time: .omitted)
     }
@@ -430,7 +466,8 @@ struct AddPlannedWorkoutView: View {
             notes: vm.formNotes,
             postRunStrides: vm.formPostRunStrides,
             intensityLevel: vm.formIntensity,
-            displayOrder: existingCount
+            displayOrder: existingCount,
+            plannedTimeMinutesSinceMidnight: vm.formPlannedTimeEnabled ? vm.formPlannedTimeMinutes : 0
         )
         modelContext.insert(workout)
         workout.routeWaypoints = vm.formRouteWaypoints
@@ -466,6 +503,7 @@ struct AddPlannedWorkoutView: View {
         workout.notes = vm.formNotes
         workout.postRunStrides = vm.formPostRunStrides
         workout.intensityLevel = vm.formIntensity
+        workout.plannedTimeMinutesSinceMidnight = vm.formPlannedTimeEnabled ? vm.formPlannedTimeMinutes : 0
         if let plan = localFuelPlan {
             workout.fuelPlan = plan
         }

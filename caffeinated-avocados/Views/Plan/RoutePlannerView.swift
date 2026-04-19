@@ -17,6 +17,7 @@ struct RoutePlannerView: View {
     var onClear: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @State private var locationManager = LocationManager()
     @State private var hasCenteredOnUser = false
@@ -29,6 +30,11 @@ struct RoutePlannerView: View {
     @State private var searchText = ""
     @State private var searchResults: [MKMapItem] = []
     @State private var isSearching = false
+
+    // MARK: - Library state
+    @State private var showingLibraryPicker = false
+    @State private var showingSaveSheet = false
+    @State private var newRouteName = ""
 
     var body: some View {
         NavigationStack {
@@ -53,6 +59,13 @@ struct RoutePlannerView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingLibraryPicker = true
+                    } label: {
+                        Label("Load from Library", systemImage: "books.vertical")
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { saveRoute() }
                         .disabled(waypoints.count < 2)
@@ -64,6 +77,14 @@ struct RoutePlannerView: View {
             }
             .onChange(of: locationManager.lastCoordinate?.latitude) { _, _ in
                 centerOnUserIfNeeded()
+            }
+            .sheet(isPresented: $showingLibraryPicker) {
+                RoutePickerView(targetDistanceMiles: existingDistanceMiles) { route in
+                    loadRoute(route)
+                }
+            }
+            .sheet(isPresented: $showingSaveSheet) {
+                saveToLibrarySheet
             }
         }
     }
@@ -203,6 +224,16 @@ struct RoutePlannerView: View {
                     .lineLimit(2)
             }
 
+            // Save to Library
+            Button {
+                newRouteName = ""
+                showingSaveSheet = true
+            } label: {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.title3)
+            }
+            .disabled(waypoints.count < 2)
+
             Button {
                 undoLastWaypoint()
             } label: {
@@ -223,6 +254,54 @@ struct RoutePlannerView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
         .padding(.bottom, 8)
+    }
+
+    // MARK: - Save to Library Sheet
+
+    private var saveToLibrarySheet: some View {
+        NavigationStack {
+            Form {
+                Section("Route Name") {
+                    TextField("e.g. Morning Loop", text: $newRouteName)
+                }
+                Section {
+                    HStack {
+                        Text("Distance")
+                        Spacer()
+                        Text(distanceLabel)
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Waypoints")
+                        Spacer()
+                        Text("\(waypoints.count)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            #if os(macOS)
+            .formStyle(.grouped)
+            .frame(minWidth: 400, minHeight: 250)
+            #endif
+            .navigationTitle("Save to Library")
+            #if !os(macOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showingSaveSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let trimmed = newRouteName.trimmingCharacters(in: .whitespaces)
+                        guard !trimmed.isEmpty else { return }
+                        saveToLibrary(name: trimmed)
+                        showingSaveSheet = false
+                    }
+                    .disabled(newRouteName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
     }
 
     // MARK: - Waypoint Pin
@@ -263,6 +342,68 @@ struct RoutePlannerView: View {
     }
 
     // MARK: - Actions
+
+    /// Loads a route from the library into the planner.
+    /// Uses the cached polyline if available; otherwise re-queries MKDirections.
+    private func loadRoute(_ route: SavedRoute) {
+        let routeWaypoints = route.routeWaypoints
+        guard routeWaypoints.count >= 2 else {
+            errorMessage = ""\(route.name)" has no map data. Open it in the planner to draw the route first."
+            return
+        }
+
+        waypoints = routeWaypoints
+        polylineCoords = []
+        distanceMeters = 0
+        errorMessage = nil
+
+        let storedPolyline = route.routePolyline
+        if !storedPolyline.isEmpty {
+            polylineCoords = storedPolyline.map {
+                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
+            }
+            distanceMeters = route.distanceMiles * 1609.34
+        } else {
+            recalculateFullRoute()
+        }
+
+        fitCamera(to: routeWaypoints)
+    }
+
+    /// Creates a new SavedRoute in the library from the current map state.
+    private func saveToLibrary(name: String) {
+        let polyline = polylineCoords.map { RouteCoordinate(latitude: $0.latitude, longitude: $0.longitude) }
+        let miles = distanceMeters / 1609.34
+        let route = SavedRoute(
+            name: name,
+            distanceMiles: miles,
+            routeWaypoints: waypoints,
+            routePolyline: polyline
+        )
+        modelContext.insert(route)
+    }
+
+    /// Moves the map camera to frame all waypoints with padding.
+    private func fitCamera(to wps: [RouteWaypoint]) {
+        guard !wps.isEmpty else { return }
+        var minLat = wps[0].latitude, maxLat = wps[0].latitude
+        var minLon = wps[0].longitude, maxLon = wps[0].longitude
+        for wp in wps {
+            minLat = min(minLat, wp.latitude)
+            maxLat = max(maxLat, wp.latitude)
+            minLon = min(minLon, wp.longitude)
+            maxLon = max(maxLon, wp.longitude)
+        }
+        let center = CLLocationCoordinate2D(
+            latitude:  (minLat + maxLat) / 2,
+            longitude: (minLon + maxLon) / 2
+        )
+        let span = MKCoordinateSpan(
+            latitudeDelta:  max(0.01, (maxLat - minLat) * 1.4),
+            longitudeDelta: max(0.01, (maxLon - minLon) * 1.4)
+        )
+        cameraPosition = .region(MKCoordinateRegion(center: center, span: span))
+    }
 
     private func loadExisting() {
         if !existingWaypoints.isEmpty {

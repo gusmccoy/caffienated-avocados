@@ -37,12 +37,16 @@ final class SavedRoute {
     var usageCount: Int = 0
     var createdAt: Date = Date()
 
+    // MARK: - Map Data
+
     /// JSON-encoded [RouteCoordinate] — the full polyline drawn on the map.
     /// Empty when the route was entered manually with only metadata.
     var routePolylineData: Data = Data()
 
     /// JSON-encoded [RouteWaypoint] — user-placed pins that define the route path.
     var routeWaypointsData: Data = Data()
+
+    // MARK: - Computed
 
     var surface: RouteSurface {
         get { RouteSurface(rawValue: surfaceRaw) ?? .road }
@@ -74,12 +78,21 @@ final class SavedRoute {
     /// True when at least two waypoints are stored — the route can be drawn on a map.
     var hasRoute: Bool { routeWaypoints.count >= 2 }
 
+    /// Formatted distance string.
+    var distanceLabel: String {
+        distanceMiles > 0 ? String(format: "%.2g mi", distanceMiles) : "Distance not set"
+    }
+
+    // MARK: - Init
+
     init(
         name: String = "",
         distanceMiles: Double = 0,
         notes: String = "",
         isFavorite: Bool = false,
-        surface: RouteSurface = .road
+        surface: RouteSurface = .road,
+        routeWaypoints: [RouteWaypoint] = [],
+        routePolyline: [RouteCoordinate] = []
     ) {
         self.id = UUID()
         self.name = name
@@ -89,10 +102,7 @@ final class SavedRoute {
         self.surfaceRaw = surface.rawValue
         self.usageCount = 0
         self.createdAt = .now
-    }
-
-    /// Formatted distance string.
-    var distanceLabel: String {
-        distanceMiles > 0 ? String(format: "%.2g mi", distanceMiles) : "Distance not set"
+        self.routeWaypointsData = (try? JSONEncoder().encode(routeWaypoints)) ?? Data()
+        self.routePolylineData  = (try? JSONEncoder().encode(routePolyline))  ?? Data()
     }
 }

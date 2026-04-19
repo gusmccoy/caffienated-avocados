@@ -60,7 +60,6 @@ Week-by-week planner (Monday → Sunday) with forward/back navigation.
 - **Units** — miles or kilometers, lbs or kg
 - **Default running pace** — set a MM:SS /mi pace used to estimate distance for planned runs that have duration but no explicit distance (shown as *~X mi* in the plan row)
 - **Plan matching threshold** — tune how close an activity needs to be to count as completing a planned workout
-- **Export** — coming soon
 
 ### Profile
 Personal records, training history, and injury tracking in one place.
