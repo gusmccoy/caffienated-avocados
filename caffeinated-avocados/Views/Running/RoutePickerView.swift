@@ -106,6 +106,11 @@ struct RoutePickerView: View {
                                     .font(.caption2)
                                     .foregroundStyle(.yellow)
                             }
+                            if route.hasRoute {
+                                Image(systemName: "map.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.blue)
+                            }
                         }
                         HStack(spacing: 6) {
                             Text(route.distanceLabel)
