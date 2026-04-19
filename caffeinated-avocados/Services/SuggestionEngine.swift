@@ -55,8 +55,17 @@ enum SuggestionEngine {
 
         var results: [TrainingSuggestion] = []
 
-        let current     = buckets.last!
-        let recent      = Array(buckets.dropLast())     // everything before current week
+        // Explicitly calculate current week's mileage using Monday as week start (ISO 8601).
+        // Cannot rely on buckets.last since the current week might have no data yet.
+        let cal = Calendar.mondayFirst
+        guard let thisWeekStart = cal.dateInterval(of: .weekOfYear, for: Date.now)?.start else { return [] }
+        let thisWeekSessions = sessions.filter { session in
+            guard let weekInterval = cal.dateInterval(of: .weekOfYear, for: session.date) else { return false }
+            return weekInterval.start == thisWeekStart
+        }
+        let currentMiles = thisWeekSessions.reduce(0.0) { $0 + ($1.runningWorkout?.distanceMiles ?? 0) }
+
+        let recent      = buckets.dropLast(1).filter { $0.weekStart < thisWeekStart }  // exclude current week, use only complete prior weeks
         let trailing4   = Array(recent.suffix(4))
         let trailing8   = Array(recent.suffix(8))
 
@@ -68,11 +77,11 @@ enum SuggestionEngine {
         if trailing4.count >= 4 && avg4 > 2 {
             let dayOfWeek = Calendar.mondayFirst.component(.weekday, from: Date.now)
             let isAtLeastThursday = dayOfWeek >= 4 // 2=Mon..8=Sun in ISO
-            if isAtLeastThursday && current.miles < avg4 * 0.5 {
+            if isAtLeastThursday && currentMiles < avg4 * 0.5 {
                 results.append(TrainingSuggestion(
                     kind: .undertraining,
                     title: "Low Mileage Week",
-                    body: String(format: "You're at %.1f mi so far — well below your %.1f mi average. Still time to get a run in.", current.miles, avg4),
+                    body: String(format: "You're at %.1f mi so far — well below your %.1f mi average. Still time to get a run in.", currentMiles, avg4),
                     priority: 2
                 ))
             }
@@ -93,14 +102,14 @@ enum SuggestionEngine {
         }
 
         // 3. Volume spike — current week already ≥ 130% of 4-week avg before the week ends
-        if avg4 > 2 && current.miles >= avg4 * 1.30 {
+        if avg4 > 2 && currentMiles >= avg4 * 1.30 {
             let dayOfWeek = Calendar.mondayFirst.component(.weekday, from: Date.now)
             let daysLeft = max(0, 7 - dayOfWeek + 1)
             if daysLeft >= 2 { // Only relevant when there are still days left
                 results.append(TrainingSuggestion(
                     kind: .volumeSpike,
                     title: "Volume Spike Detected",
-                    body: String(format: "You're already at %.1f mi with %d days left — that's 30%%+ above your %.1f mi average. Ease up to avoid overloading.", current.miles, daysLeft, avg4),
+                    body: String(format: "You're already at %.1f mi with %d days left — that's 30%%+ above your %.1f mi average. Ease up to avoid overloading.", currentMiles, daysLeft, avg4),
                     priority: 4
                 ))
             }
