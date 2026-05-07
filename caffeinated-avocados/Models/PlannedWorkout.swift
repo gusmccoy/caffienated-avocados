@@ -379,13 +379,16 @@ extension PlannedWorkout: Transferable {
                 intensityLevel: transferData.intensityLevel,
                 displayOrder: transferData.displayOrder
             )
-            
+
+            // Preserve the original id so drop targets can look up the real SwiftData model
+            workout.id = transferData.id
+
             // Restore the encoded data directly
             workout.runSegmentsData = transferData.runSegmentsData
             workout.routePolylineData = transferData.routePolylineData
             workout.routeWaypointsData = transferData.routeWaypointsData
             workout.routeDistanceMiles = transferData.routeDistanceMiles
-            
+
             return workout
         }
     }

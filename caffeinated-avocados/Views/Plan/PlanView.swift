@@ -659,9 +659,12 @@ private struct DaySection: View {
 
     /// Moves a workout from its current day to this day, appending it at the end.
     private func moveWorkout(_ workout: PlannedWorkout) {
-        workout.date = day.startOfDay
-        // Append after any workouts already on this day
-        workout.displayOrder = workouts.count
+        // The dropped workout is a deserialized copy — look up the real SwiftData model.
+        let originalId = workout.id
+        let descriptor = FetchDescriptor<PlannedWorkout>(predicate: #Predicate { $0.id == originalId })
+        guard let original = try? modelContext.fetch(descriptor).first else { return }
+        original.date = day.startOfDay
+        original.displayOrder = workouts.count
     }
 
     private func deleteWorkout(_ workout: PlannedWorkout) {
@@ -683,16 +686,14 @@ private struct DaySection: View {
     private func reorderWorkouts(movedWorkout: PlannedWorkout, targetIndex: Int, from workouts: [PlannedWorkout]) {
         var updatedWorkouts = workouts
 
-        // Remove the moved workout from its current position
-        if let currentIndex = updatedWorkouts.firstIndex(where: { $0.id == movedWorkout.id }) {
-            updatedWorkouts.remove(at: currentIndex)
-        }
+        // Find the real SwiftData model (movedWorkout is a deserialized copy from Transferable)
+        guard let currentIndex = updatedWorkouts.firstIndex(where: { $0.id == movedWorkout.id }) else { return }
+        let original = updatedWorkouts[currentIndex]
+        updatedWorkouts.remove(at: currentIndex)
 
-        // Insert at the target position
         let insertIndex = min(targetIndex, updatedWorkouts.count)
-        updatedWorkouts.insert(movedWorkout, at: insertIndex)
+        updatedWorkouts.insert(original, at: insertIndex)
 
-        // Update displayOrder for all workouts in this day
         for (index, workout) in updatedWorkouts.enumerated() {
             workout.displayOrder = index
         }
