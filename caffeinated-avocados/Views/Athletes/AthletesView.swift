@@ -102,6 +102,9 @@ struct AthletePlanView: View {
 
     @State private var showingAddRace = false
     @State private var editingRace: Race? = nil
+    @State private var showingTemplateLibrary = false
+    @State private var showingRouteLibrary = false
+    @State private var showingCopyConfirmation = false
 
     @Environment(\.modelContext) private var modelContext
 
@@ -109,6 +112,13 @@ struct AthletePlanView: View {
         ScrollView {
             VStack(spacing: 16) {
                 coachBanner
+
+                if shouldShowPlanningBanner {
+                    PlanningReminderBanner {
+                        let nextMonday = Calendar.current.date(byAdding: .day, value: 1, to: Date.now.startOfDay)!
+                        vm.weekStart = nextMonday
+                    }
+                }
 
                 WeekNavigationHeader(vm: vm)
                 WeekMileageCard(miles: vm.totalPlannedMiles(from: weekWorkouts))
@@ -136,6 +146,34 @@ struct AthletePlanView: View {
                     Label("Add Race", systemImage: "flag.checkered")
                 }
             }
+            ToolbarItem(placement: .secondaryAction) {
+                Button { showingTemplateLibrary = true } label: {
+                    Label("Workout Templates", systemImage: "doc.text")
+                }
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                Button { showingRouteLibrary = true } label: {
+                    Label("Route Library", systemImage: "map")
+                }
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                Button {
+                    vm.rematchAllPlannedWorkouts(modelContext: modelContext)
+                } label: {
+                    Label("Re-match Activities", systemImage: "arrow.triangle.2.circlepath")
+                }
+            }
+            ToolbarItem(placement: .secondaryAction) {
+                Button {
+                    if vm.currentWeekHasWorkouts(from: allPlanned) {
+                        showingCopyConfirmation = true
+                    } else {
+                        vm.copyPreviousWeek(from: allPlanned, modelContext: modelContext)
+                    }
+                } label: {
+                    Label("Copy Last Week", systemImage: "doc.on.doc")
+                }
+            }
         }
         .sheet(isPresented: $vm.isShowingAddSheet) {
             // Wrap the standard add-sheet but tag new workouts with the planner relationship
@@ -147,10 +185,37 @@ struct AthletePlanView: View {
         .sheet(item: $editingRace) { race in
             AddRaceView(editingRace: race, calendarService: calendarService)
         }
+        .sheet(isPresented: $showingTemplateLibrary) {
+            TemplateLibraryView()
+        }
+        .sheet(isPresented: $showingRouteLibrary) {
+            RoutesView()
+        }
+        .confirmationDialog(
+            "This week already has workouts. Copy last week's plan anyway?",
+            isPresented: $showingCopyConfirmation,
+            actions: {
+                Button("Copy", role: .destructive) {
+                    vm.copyPreviousWeek(from: allPlanned, modelContext: modelContext)
+                }
+            }
+        )
     }
 
     private var weekWorkouts: [PlannedWorkout] {
         vm.workoutsInCurrentWeek(from: allPlanned)
+    }
+
+    private var shouldShowPlanningBanner: Bool {
+        // Show on Sunday only
+        let dayOfWeek = Calendar.current.component(.weekday, from: .now)
+        guard dayOfWeek == 1 else { return false }
+
+        // Show only if next week has no workouts
+        let nextMonday = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: vm.weekStart) ?? vm.weekStart
+        let endOfNextWeek = Calendar.current.date(byAdding: .day, value: 7, to: nextMonday) ?? nextMonday
+        let nextWeekWorkouts = allPlanned.filter { $0.date >= nextMonday && $0.date < endOfNextWeek }
+        return nextWeekWorkouts.isEmpty
     }
 
     private func racesOnDay(_ day: Date) -> [Race] {
