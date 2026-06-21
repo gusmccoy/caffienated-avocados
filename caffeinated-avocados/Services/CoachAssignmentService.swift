@@ -70,7 +70,12 @@ actor CoachAssignmentService {
     func publish(payload: CoachAssignmentPayload, inviteCode: String) async throws {
         let data   = try JSONEncoder().encode(payload)
         let json   = String(data: data, encoding: .utf8) ?? "{}"
-        let record = CKRecord(recordType: Self.recordType, recordID: recordID(for: payload.id))
+        let rid    = recordID(for: payload.id)
+        // Overwrite the existing record if one is already on the server (a coach
+        // editing a previously-published workout), otherwise create a fresh one.
+        // Saving a brand-new CKRecord over an existing record name fails with a
+        // server-record-changed conflict, so we must fetch-then-modify on edits.
+        let record = (try? await db.record(for: rid)) ?? CKRecord(recordType: Self.recordType, recordID: rid)
         record["inviteCode"]   = inviteCode as CKRecordValue
         record["workoutId"]    = payload.id as CKRecordValue
         record["payloadJSON"]  = json as CKRecordValue

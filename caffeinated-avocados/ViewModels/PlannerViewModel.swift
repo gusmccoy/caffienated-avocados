@@ -272,27 +272,41 @@ final class PlannerViewModel {
                 if let local = allPlanned.first(where: { $0.coachAssignmentId == ckId }) {
                     modelContext.delete(local)
                 }
-            } else if !dismissed.contains(ckId), !existingIds.contains(ckId), let p = item.payload {
-                let w = PlannedWorkout(
-                    date: p.date,
-                    workoutType: WorkoutType(rawValue: p.workoutTypeRaw) ?? .running,
-                    title: p.title,
-                    plannedDistanceMiles: p.plannedDistanceMiles,
-                    plannedDurationSeconds: p.plannedDurationSeconds,
-                    strengthType: StrengthType(rawValue: p.strengthTypeRaw) ?? .unspecified,
-                    crossTrainingActivityType: CrossTrainingActivityType(rawValue: p.crossTrainingActivityTypeRaw) ?? .other,
-                    runCategory: RunCategory(rawValue: p.runCategoryRaw) ?? .none,
-                    notes: p.notes,
-                    postRunStrides: p.postRunStrides,
-                    intensityLevel: IntensityLevel(rawValue: p.intensityLevelRaw) ?? .moderate,
-                    plannerDisplayName: p.plannerDisplayName
-                )
-                w.runSegmentsData   = p.runSegmentsData
+                continue
+            }
+
+            guard let p = item.payload else { continue }
+
+            if let local = allPlanned.first(where: { $0.coachAssignmentId == ckId }) {
+                // Coach edited an existing assignment — apply their changes locally.
+                // Leave completed workouts untouched so finished sessions stay intact.
+                if !local.isCompleted { Self.apply(p, to: local) }
+            } else if !dismissed.contains(ckId), !existingIds.contains(ckId) {
+                let w = PlannedWorkout(date: p.date, workoutType: WorkoutType(rawValue: p.workoutTypeRaw) ?? .running)
+                Self.apply(p, to: w)
                 w.coachAssignmentId = ckId
                 // createdByPlannerRelationshipId stays nil so the athlete's plan filter shows it
                 modelContext.insert(w)
             }
         }
+    }
+
+    /// Copies a coach assignment payload's editable fields onto a local PlannedWorkout.
+    /// Used for both inserts and updates so the two paths can't drift apart.
+    private static func apply(_ p: CoachAssignmentPayload, to w: PlannedWorkout) {
+        w.date                      = p.date
+        w.workoutType               = WorkoutType(rawValue: p.workoutTypeRaw) ?? .running
+        w.title                     = p.title
+        w.plannedDistanceMiles      = p.plannedDistanceMiles
+        w.plannedDurationSeconds    = p.plannedDurationSeconds
+        w.strengthType              = StrengthType(rawValue: p.strengthTypeRaw) ?? .unspecified
+        w.crossTrainingActivityType = CrossTrainingActivityType(rawValue: p.crossTrainingActivityTypeRaw) ?? .other
+        w.runCategory               = RunCategory(rawValue: p.runCategoryRaw) ?? .none
+        w.runSegmentsData           = p.runSegmentsData
+        w.notes                     = p.notes
+        w.postRunStrides            = p.postRunStrides
+        w.intensityLevel            = IntensityLevel(rawValue: p.intensityLevelRaw) ?? .moderate
+        w.plannerDisplayName        = p.plannerDisplayName
     }
 
     // MARK: - Helpers
