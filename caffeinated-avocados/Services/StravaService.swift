@@ -21,9 +21,13 @@ import UIKit
 // MARK: - Strava API Constants
 
 private enum StravaAPI {
+    // NOTE: Strava is migrating the API base URL to https://www.api-v3.strava.com,
+    // effective June 1, 2027. The new host is not live before then, so keep using
+    // the current base URL until the cutover.
     static let baseURL          = "https://www.strava.com/api/v3"
     static let authURL          = "https://www.strava.com/oauth/mobile/authorize"
     static let tokenURL         = "https://www.strava.com/oauth/token"
+    static let revokeURL        = "https://www.strava.com/oauth/revoke"
     static let redirectURI      = "mccoy-fitness://strava-auth"
     static let scope            = "activity:read_all,profile:read_all"
 
@@ -61,7 +65,20 @@ final class StravaService {
         return athlete
     }
 
-    /// Clears all stored Strava credentials.
+    /// Revokes the app's access on Strava's servers, then clears local credentials.
+    /// Uses the oauth/revoke endpoint; oauth/deauthorize is retired June 1, 2027.
+    func deauthorize() async {
+        if let token = readFromKeychain(key: "strava_access_token") {
+            var request = URLRequest(url: URL(string: StravaAPI.revokeURL)!)
+            request.httpMethod = "POST"
+            // Token goes in the Authorization header, not as a form param.
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            _ = try? await URLSession.shared.data(for: request)
+        }
+        clearTokens()
+    }
+
+    /// Clears all stored Strava credentials locally (no server-side revoke).
     func clearTokens() {
         deleteFromKeychain(key: "strava_access_token")
         deleteFromKeychain(key: "strava_refresh_token")

@@ -116,8 +116,8 @@ final class StravaViewModel {
         isLoading = false
     }
 
-    func disconnect() {
-        stravaService.clearTokens()
+    func disconnect() async {
+        await stravaService.deauthorize()
         isConnected = false
         connectedAthlete = nil
         recentActivities = []
