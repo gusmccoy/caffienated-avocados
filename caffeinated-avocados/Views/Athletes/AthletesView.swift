@@ -555,9 +555,11 @@ struct CoachAddPlannedWorkoutView: View {
 
     private func updateExisting(_ workout: PlannedWorkout) {
         let oldEventId = workout.calendarEventIdentifier
+        let title = vm.formTitle.isEmpty ? defaultTitle : vm.formTitle
+        let distance = vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0.0
         workout.workoutType = vm.formType
-        workout.title = vm.formTitle.isEmpty ? defaultTitle : vm.formTitle
-        workout.plannedDistanceMiles = vm.formShowsDistance ? vm.formEffectiveDistanceMiles : 0
+        workout.title = title
+        workout.plannedDistanceMiles = distance
         workout.plannedDurationSeconds = vm.formDurationSeconds
         workout.crossTrainingActivityType = vm.formCrossTrainingActivityType
         workout.runCategory = vm.formRunCategory
@@ -569,6 +571,30 @@ struct CoachAddPlannedWorkoutView: View {
             workout.createdByPlannerRelationshipId = relationship.id.uuidString
             workout.plannerDisplayName = relationship.plannerDisplayName
         }
+        // Ensure the workout has a CK record id so the edit can be published.
+        if workout.coachAssignmentId == nil {
+            workout.coachAssignmentId = "coachassign-\(workout.id.uuidString)"
+        }
+
+        // Re-publish the updated payload so the athlete's next sync picks up the edit.
+        let payload = CoachAssignmentPayload(
+            id: workout.id.uuidString,
+            date: workout.date,
+            workoutTypeRaw: vm.formType.rawValue,
+            title: title,
+            plannedDistanceMiles: distance,
+            plannedDurationSeconds: vm.formDurationSeconds,
+            strengthTypeRaw: vm.formStrengthType.rawValue,
+            crossTrainingActivityTypeRaw: vm.formCrossTrainingActivityType.rawValue,
+            runCategoryRaw: vm.formRunCategory.rawValue,
+            runSegmentsData: workout.runSegmentsData,
+            notes: vm.formNotes,
+            postRunStrides: workout.postRunStrides,
+            intensityLevelRaw: vm.formIntensity.rawValue,
+            plannerDisplayName: relationship.plannerDisplayName
+        )
+        Task { try? await CoachAssignmentService.shared.publish(payload: payload, inviteCode: relationship.inviteCode) }
+
         Task { @MainActor in
             if let id = oldEventId { try? await calendarService.deleteEvent(identifier: id) }
         }
