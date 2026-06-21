@@ -147,8 +147,14 @@ let swipeDeleteHint: String = {
 
 extension View {
     /// Applies a card-style background with rounded corners.
+    ///
+    /// The `maxWidth: .infinity` keeps cards full-width and left-aligned on both
+    /// platforms. Without it, VStack-based cards collapse to their intrinsic width
+    /// on macOS (where a ScrollView centers its content) while HStack cards with a
+    /// trailing `Spacer()` span the full width — producing inconsistent alignment.
     func cardStyle() -> some View {
         self
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
     }

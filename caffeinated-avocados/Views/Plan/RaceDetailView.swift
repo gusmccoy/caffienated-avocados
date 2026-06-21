@@ -118,6 +118,7 @@ struct RaceDetailView: View {
                                 Label("Get Suggestions", systemImage: "sparkles")
                             }
                         }
+                        .buttonStyle(.plain)
                         .disabled(isLoadingSuggestions || race.isPast)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)

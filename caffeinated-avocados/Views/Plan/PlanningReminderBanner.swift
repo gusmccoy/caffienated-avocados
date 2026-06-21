@@ -28,6 +28,7 @@ struct PlanningReminderBanner: View {
                 .padding(.vertical, 5)
                 .background(Color.orange, in: Capsule())
                 .foregroundStyle(.white)
+                .buttonStyle(.plain)
         }
         .cardStyle()
     }
