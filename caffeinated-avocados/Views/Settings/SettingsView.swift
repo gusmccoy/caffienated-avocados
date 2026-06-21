@@ -183,7 +183,7 @@ private struct StravaConnectionRow: View {
                 }
                 Spacer()
                 Button("Disconnect", role: .destructive) {
-                    vm.disconnect()
+                    Task { await vm.disconnect() }
                 }
                 .font(.caption)
             }
