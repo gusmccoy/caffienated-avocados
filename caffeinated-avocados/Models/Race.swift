@@ -102,4 +102,16 @@ final class Race {
     }
 
     var isPast: Bool { daysUntil < 0 }
+
+    /// Display label for the race distance. Standard distances use their preset name
+    /// (e.g. "Half Marathon"); custom distances render the mileage in the user's unit.
+    func distanceLabel(unit: String) -> String {
+        if raceDistance == .custom {
+            if unit == DistanceUnit.kilometers.rawValue {
+                return String(format: "%.1f km", distanceMiles.milesToKm)
+            }
+            return String(format: "%.1f mi", distanceMiles)
+        }
+        return raceDistance.rawValue
+    }
 }

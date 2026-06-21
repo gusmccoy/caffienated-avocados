@@ -7,6 +7,7 @@ import SwiftData
 struct DashboardView: View {
     @Query(sort: \WorkoutSession.date, order: .reverse) private var sessions: [WorkoutSession]
     @Query(sort: \PlannedWorkout.date, order: .forward) private var allPlannedWorkouts: [PlannedWorkout]
+    @Query(sort: \Race.date, order: .reverse) private var allRaces: [Race]
     @State private var listVM = WorkoutListViewModel()
     @State private var showingAddWorkout = false
     @State private var showingLogRunning = false
@@ -16,6 +17,11 @@ struct DashboardView: View {
     // Grab just the 5 most recent workouts for the "Recent" section
     private var recentSessions: [WorkoutSession] {
         Array(sessions.prefix(5))
+    }
+
+    // The 3 most recent past races, shown with their computed results.
+    private var recentRaces: [Race] {
+        Array(allRaces.filter { $0.isPast }.prefix(3))
     }
 
     /// Computed property that checks if all planned workouts for the current week are completed.
@@ -60,6 +66,9 @@ struct DashboardView: View {
                         showingLogStrength: $showingLogStrength,
                         showingLogCrossTraining: $showingLogCrossTraining
                     )
+                    if !recentRaces.isEmpty {
+                        RecentRacesSection(races: recentRaces, sessions: Array(sessions))
+                    }
                     RecentWorkoutsSection(sessions: recentSessions)
                 }
                 .padding()
@@ -250,6 +259,86 @@ private struct RecentWorkoutsSection: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Recent Races Section
+
+private struct RecentRacesSection: View {
+    let races: [Race]
+    let sessions: [WorkoutSession]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Recent Races")
+                .font(.title3).bold()
+
+            ForEach(races) { race in
+                NavigationLink {
+                    RaceDetailView(race: race)
+                } label: {
+                    RecentRaceRow(
+                        race: race,
+                        result: RaceResultCalculator.result(for: race, from: sessions)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+private struct RecentRaceRow: View {
+    let race: Race
+    let result: RaceResult?
+    @AppStorage("distanceUnit") private var distanceUnit: String = DistanceUnit.miles.rawValue
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "flag.checkered")
+                .foregroundStyle(.secondary)
+                .frame(width: 44, height: 44)
+                .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(race.name.isEmpty ? "Race" : race.name)
+                    .font(.subheadline).bold()
+                HStack(spacing: 4) {
+                    Text(race.date.formatted(date: .abbreviated, time: .omitted))
+                    Text("·")
+                    Text(race.distanceLabel(unit: distanceUnit))
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 2) {
+                if let result {
+                    Text(result.timeSeconds.formattedAsTime)
+                        .font(.subheadline).bold()
+                    if let goal = race.goalTimeSeconds {
+                        Text(goalDeltaText(result: result.timeSeconds, goal: goal))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(result.timeSeconds <= goal ? .green : .red)
+                    }
+                } else {
+                    Text("No result")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// Signed difference vs. goal, e.g. "−1:12" (under goal) or "+0:45" (over).
+    private func goalDeltaText(result: Int, goal: Int) -> String {
+        let diff = result - goal
+        let sign = diff <= 0 ? "−" : "+"
+        return sign + abs(diff).formattedAsTime
     }
 }
 

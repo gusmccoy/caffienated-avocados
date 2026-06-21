@@ -26,6 +26,12 @@ struct PlanView: View {
     @Query(sort: \Race.date, order: .forward)
     private var allRaces: [Race]
 
+    /// Upcoming races only. Once a race date passes it leaves the plan and surfaces
+    /// in the Dashboard's "Recent Races" section instead.
+    private var upcomingRaces: [Race] {
+        allRaces.filter { !$0.isPast }
+    }
+
     @Query(sort: \PlannerRelationship.createdAt, order: .forward)
     private var allRelationships: [PlannerRelationship]
 
@@ -75,7 +81,7 @@ struct PlanView: View {
 
                     // All races section
                     RacesSectionView(
-                        races: allRaces,
+                        races: upcomingRaces,
                         onAdd: { showingAddRace = true },
                         onEdit: { editingRace = $0 },
                         onDelete: deleteRace
@@ -169,7 +175,7 @@ struct PlanView: View {
     private var weekRaceMiles: Double {
         let start = vm.weekStart.startOfDay
         let end = Calendar.current.date(byAdding: .day, value: 7, to: start) ?? start
-        return allRaces
+        return upcomingRaces
             .filter { $0.date >= start && $0.date < end }
             .reduce(0) { $0 + $1.distanceMiles }
     }
@@ -188,7 +194,7 @@ struct PlanView: View {
 
     private func racesOnDay(_ day: Date) -> [Race] {
         let target = day.startOfDay
-        return allRaces.filter { Calendar.current.startOfDay(for: $0.date) == target }
+        return upcomingRaces.filter { Calendar.current.startOfDay(for: $0.date) == target }
     }
 
     @Environment(\.modelContext) private var modelContext
@@ -410,7 +416,7 @@ private struct RaceRow: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(race.isPast ? Color.secondary : Color.orange)
                 if let goal = race.goalTimeSeconds {
-                    Text(formattedGoal(goal))
+                    Text(goal.formattedAsTime)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -419,21 +425,7 @@ private struct RaceRow: View {
     }
 
     private var distanceLabel: String {
-        if race.raceDistance == .custom {
-            if distanceUnit == DistanceUnit.kilometers.rawValue {
-                return String(format: "%.1f km", race.distanceMiles.milesToKm)
-            }
-            return String(format: "%.1f mi", race.distanceMiles)
-        }
-        return race.raceDistance.rawValue
-    }
-
-    private func formattedGoal(_ secs: Int) -> String {
-        let h = secs / 3600
-        let m = (secs % 3600) / 60
-        let s = secs % 60
-        if h > 0 { return String(format: "%d:%02d:%02d", h, m, s) }
-        return String(format: "%d:%02d", m, s)
+        race.distanceLabel(unit: distanceUnit)
     }
 }
 
