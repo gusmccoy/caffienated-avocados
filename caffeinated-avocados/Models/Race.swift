@@ -19,6 +19,7 @@ enum RaceDistance: String, Codable, CaseIterable {
     case fiftyMile    = "50 Mile"
     case hundredK     = "100K"
     case hundredMile  = "100 Mile"
+    case hyrox        = "Hyrox"
     case custom       = "Custom"
 
     /// Preset distance in miles. Nil for `.custom`.
@@ -37,6 +38,7 @@ enum RaceDistance: String, Codable, CaseIterable {
         case .fiftyMile:    return 50.0
         case .hundredK:     return 62.137
         case .hundredMile:  return 100.0
+        case .hyrox:        return 4.971   // 8 × 1km running between functional stations
         case .custom:       return nil
         }
     }
