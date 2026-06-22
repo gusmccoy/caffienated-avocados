@@ -14,14 +14,14 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
-            PlanView()
-                .tabItem {
-                    Label("Plan", systemImage: "calendar.badge.plus")
-                }
-
             DashboardView()
                 .tabItem {
                     Label("Dashboard", systemImage: "chart.bar.fill")
+                }
+
+            PlanView()
+                .tabItem {
+                    Label("Plan", systemImage: "calendar.badge.plus")
                 }
 
             ActivitiesView()
