@@ -67,11 +67,15 @@ struct AddPlannedWorkoutView: View {
                     }
 
                     Section {
-                        ForEach(vm.formRunSegments.indices, id: \.self) { i in
+                        // Iterate over stable element identity rather than
+                        // `formRunSegments.indices` + `id: \.self`. The latter crashes
+                        // when the array shrinks (e.g. resetForm() on Save) because SwiftUI
+                        // re-evaluates a disappearing row with a now-out-of-bounds index.
+                        ForEach(Array(vm.formRunSegments.enumerated()), id: \.element.id) { index, segment in
                             Button {
-                                editingSegmentIndex = i
+                                editingSegmentIndex = index
                             } label: {
-                                SegmentRow(segment: vm.formRunSegments[i])
+                                SegmentRow(segment: segment)
                             }
                             .foregroundStyle(.primary)
                         }
